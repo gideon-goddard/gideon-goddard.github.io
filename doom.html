@@ -1,4 +1,885 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#090909"><title>DOOM-ish: Pocket Inferno</title><style>*{box-sizing:border-box;touch-action:none}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080808;color:#fff;font-family:system-ui,sans-serif}canvas{display:block;width:100vw;height:100dvh;image-rendering:pixelated}.hud{position:fixed;top:env(safe-area-inset-top,8px);left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none;text-shadow:2px 2px #000;font-weight:900;font-size:clamp(13px,3vw,22px)}.controls{position:fixed;bottom:max(14px,env(safe-area-inset-bottom));left:12px;right:12px;display:flex;justify-content:space-between;align-items:end;pointer-events:none}.pad{width:154px;height:154px;position:relative;pointer-events:auto}.btn{position:absolute;border:2px solid #9d9486;background:#322b27bd;color:#fff;border-radius:13px;font-weight:900;font-size:20px;display:grid;place-items:center;user-select:none;-webkit-user-select:none}.btn:active,.btn.active{background:#b84d2acc}.up{left:52px;top:0;width:50px;height:50px}.down{left:52px;bottom:0;width:50px;height:50px}.left{left:0;top:52px;width:50px;height:50px}.right{right:0;top:52px;width:50px;height:50px}.actions{display:flex;gap:12px;align-items:end;pointer-events:auto}.fire{position:static;width:100px;height:100px;border-radius:50%;background:#942e25c9;border:3px solid #ffad82;font-size:16px}.turn{position:static;width:52px;height:72px}.top{position:fixed;top:50px;right:12px;display:flex;gap:6px}.top button{background:#201c1cdd;color:white;border:1px solid #777;padding:8px;border-radius:7px;font-weight:700}.overlay{position:fixed;inset:0;background:#050505db;display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}.panel{max-width:480px;background:#201b1a;border:2px solid #a34b32;padding:24px;text-align:center;box-shadow:0 0 60px #7b1c16}.panel h1{font-size:clamp(30px,7vw,55px);color:#ef6e39;margin:0 0 10px;text-shadow:3px 3px #000}.panel p{line-height:1.5}.panel button{font-size:20px;font-weight:900;padding:14px 32px;background:#a93425;color:white;border:2px solid #efab80}.hint{font-size:12px;opacity:.75}@media(max-width:500px){.pad{transform:scale(.86);transform-origin:bottom left}.actions{gap:5px}.fire{width:84px;height:84px}.turn{width:43px;height:65px}}</style></head><body><canvas id="screen"></canvas><div class="hud"><div id="stats">HEALTH 100 · AMMO 40</div><div id="kills">KILLS 0/0</div></div><div class="top"><button id="mapbtn">MAP</button><button id="pausebtn">PAUSE</button></div><div class="controls"><div class="pad"><div class="btn up" data-key="forward">▲</div><div class="btn down" data-key="back">▼</div><div class="btn left" data-key="strafeL">◀</div><div class="btn right" data-key="strafeR">▶</div></div><div class="actions"><div class="btn turn" data-key="turnL">↶</div><div class="btn fire" data-key="fire">FIRE</div><div class="btn turn" data-key="turnR">↷</div></div></div><div id="overlay" class="overlay"><div class="panel"><h1>POCKET INFERNO</h1><p>A standalone, DOOM-inspired browser shooter. Survive the arena, defeat the monsters, and find the green exit.</p><p>Left pad: move · ↶ ↷: turn · FIRE: shoot<br>Drag across the screen to look around.</p><p class="hint">Desktop: WASD, arrows, mouse drag, space to shoot. No downloads or external libraries required.</p><button id="start">START GAME</button></div></div><script>
-(()=>{'use strict';const canvas=document.getElementById('screen'),ctx=canvas.getContext('2d',{alpha:false});let W=0,H=0,scale=1;function resize(){W=canvas.width=Math.max(320,Math.floor(innerWidth*.72));H=canvas.height=Math.max(200,Math.floor(innerHeight*.72));ctx.imageSmoothingEnabled=false}addEventListener('resize',resize);resize();const grid=["1111111111111111","1000000000000001","1020000010000001","1000000010000001","1000110000000001","1000110000000001","1000000000300001","1000000000000001","1000001100000001","1000001100000001","1000000000000001","1000000000000001","1000000000000001","1000000000000001","1000000000000001","1111111111111111"].map(x=>x.split('').map(Number));const worldW=16,worldH=16;const exit={x:14.2,y:14.1};let p,enemies,ammo,health,killed,total,flash,damageFlash,running=false,paused=false,showMap=false,last=0,won=false;const keys=new Set();const initialEnemies=[[4.5,2.5],[12.5,3.5],[9.5,7.5],[3.5,10.5],[11.5,12.5],[6.5,13.2],[13.2,9.5]];function reset(){p={x:2.5,y:2.5,a:.2};enemies=initialEnemies.map(([x,y],i)=>({x,y,hp:2,alive:true,cool:0,phase:i}));ammo=40;health=100;killed=0;total=enemies.length;flash=0;damageFlash=0;won=false;running=true;paused=false;document.getElementById('overlay').style.display='none';last=performance.now()}function solid(x,y){const gx=Math.floor(x),gy=Math.floor(y);return gx<0||gy<0||gx>=worldW||gy>=worldH||grid[gy][gx]>0}function canMove(x,y){const r=.2;return !solid(x-r,y-r)&&!solid(x+r,y-r)&&!solid(x-r,y+r)&&!solid(x+r,y+r)}function move(dx,dy){if(canMove(p.x+dx,p.y))p.x+=dx;if(canMove(p.x,p.y+dy))p.y+=dy}function normalize(a){return Math.atan2(Math.sin(a),Math.cos(a))}function trace(ox,oy,dx,dy,max=30){let mapX=Math.floor(ox),mapY=Math.floor(oy),deltaX=Math.abs(1/(dx||1e-9)),deltaY=Math.abs(1/(dy||1e-9)),stepX=dx<0?-1:1,stepY=dy<0?-1:1,sideX=(dx<0?ox-mapX:mapX+1-ox)*deltaX,sideY=(dy<0?oy-mapY:mapY+1-oy)*deltaY,side=0;for(let i=0;i<64;i++){if(sideX<sideY){sideX+=deltaX;mapX+=stepX;side=0}else{sideY+=deltaY;mapY+=stepY;side=1}if(mapX<0||mapY<0||mapX>=worldW||mapY>=worldH)return {dist:max,tile:1,side};const tile=grid[mapY][mapX];if(tile){const dist=side===0?sideX-deltaX:sideY-deltaY;return {dist:Math.min(max,dist),tile,side,hx:ox+dist*dx,hy:oy+dist*dy}}}return {dist:max,tile:1,side}}function shoot(){if(!running||paused||ammo<=0)return;ammo--;flash=.15;let best=null,bestDist=99;for(const e of enemies){if(!e.alive)continue;const d=Math.hypot(e.x-p.x,e.y-p.y),ang=Math.abs(normalize(Math.atan2(e.y-p.y,e.x-p.x)-p.a));if(ang<Math.atan2(.35,d)+.045&&d<bestDist){const wall=trace(p.x,p.y,(e.x-p.x)/d,(e.y-p.y)/d);if(wall.dist>d-.25){best=e;bestDist=d}}}if(best){best.hp--;if(best.hp<=0){best.alive=false;killed++}}}function finish(title,msg){running=false;const o=document.getElementById('overlay');o.style.display='flex';o.querySelector('h1').textContent=title;o.querySelector('p').textContent=msg;document.getElementById('start').textContent='PLAY AGAIN'}function update(dt){if(!running||paused)return;const turn=(keys.has('turnL')?-1:0)+(keys.has('turnR')?1:0);p.a=normalize(p.a+turn*2.5*dt);let forward=(keys.has('forward')?1:0)-(keys.has('back')?1:0),strafe=(keys.has('strafeR')?1:0)-(keys.has('strafeL')?1:0);if(forward||strafe){const len=Math.hypot(forward,strafe);forward/=len;strafe/=len;const sp=2.5*dt;move((Math.cos(p.a)*forward-Math.sin(p.a)*strafe)*sp,(Math.sin(p.a)*forward+Math.cos(p.a)*strafe)*sp)}if(keys.has('fire')){if(!update.fireCool||update.fireCool<=0){shoot();update.fireCool=.24}}update.fireCool=Math.max(0,(update.fireCool||0)-dt);flash=Math.max(0,flash-dt);damageFlash=Math.max(0,damageFlash-dt);for(const e of enemies){if(!e.alive)continue;const d=Math.hypot(p.x-e.x,p.y-e.y);e.cool-=dt;if(d<7&&d>.75){const speed=.43*dt,dx=(p.x-e.x)/d*speed,dy=(p.y-e.y)/d*speed;if(canMove(e.x+dx,e.y))e.x+=dx;if(canMove(e.x,e.y+dy))e.y+=dy}if(d<1.05&&e.cool<=0){health=Math.max(0,health-12);damageFlash=.3;e.cool=1.25}}if(health<=0)finish('YOU DIED','The monsters got you. Try again.');if(killed===total&&Math.hypot(p.x-exit.x,p.y-exit.y)<.8)finish('YOU ESCAPED','Arena cleared. You survived Pocket Inferno!')}
-function render(t){const horizon=Math.floor(H*.5);ctx.fillStyle='#252b36';ctx.fillRect(0,0,W,horizon);ctx.fillStyle='#40332b';ctx.fillRect(0,horizon,W,H-horizon);for(let y=horizon;y<H;y+=3){const b=Math.floor(35+(y-horizon)/(H-horizon)*27);ctx.fillStyle=`rgba(0,0,0,${.12+(y-horizon)/H*.3})`;ctx.fillRect(0,y,W,1)}const fov=Math.PI/2.8,columns=Math.ceil(W/2),z=new Float32Array(columns);for(let i=0;i<columns;i++){const cameraX=2*(i+.5)/columns-1,rayA=p.a+Math.atan(cameraX*Math.tan(fov/2)),dx=Math.cos(rayA),dy=Math.sin(rayA),hit=trace(p.x,p.y,dx,dy),dist=Math.max(.07,hit.dist*Math.cos(rayA-p.a));z[i]=dist;const height=Math.min(H*4,H/dist*.78),top=Math.floor(horizon-height/2),texture=hit.side===0?hit.hy:hit.hx,edge=texture-Math.floor(texture);let color=hit.tile===2?[88,94,101]:hit.tile===3?[109,67,44]:[119,57,45];let light=Math.max(.16,1-dist/17)*(hit.side?.73:1)*(edge<.045||edge>.955?.63:1);ctx.fillStyle=`rgb(${color.map(v=>Math.floor(v*light)).join(',')})`;ctx.fillRect(i*2,top,2,Math.ceil(height));ctx.fillStyle=`rgba(0,0,0,${Math.min(.5,dist/25)})`;ctx.fillRect(i*2,top,2,Math.ceil(height));if(hit.tile===3){ctx.fillStyle='#6e321e';ctx.fillRect(i*2,top+height*.4,2,Math.max(1,height*.08))}}const sprites=[...enemies.filter(e=>e.alive).map(e=>({...e,type:'enemy'})),{...exit,type:'exit'}].sort((a,b)=>Math.hypot(b.x-p.x,b.y-p.y)-Math.hypot(a.x-p.x,a.y-p.y));for(const e of sprites){const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy),angle=normalize(Math.atan2(dy,dx)-p.a);if(Math.abs(angle)>fov*.85||d<.15)continue;const corrected=d*Math.cos(angle),size=Math.min(H*3,H/corrected*(e.type==='exit'?.72:.68)),cx=W/2+Math.tan(angle)/Math.tan(fov/2)*W/2,cy=H/2+size*.12;const left=Math.floor(cx-size*.35),right=Math.ceil(cx+size*.35);for(let x=left;x<right;x+=2){if(x<0||x>=W||corrected>z[Math.min(columns-1,Math.floor(x/2))]+.25)continue;const nx=(x-cx)/(size*.35);if(Math.abs(nx)>1)continue;if(e.type==='exit'){ctx.fillStyle=killed===total?'#4eff71':'#355d3a';ctx.fillRect(x,cy-size*.6,2,size*1.15);ctx.fillStyle='#142b1b';ctx.fillRect(x,cy-size*.3,2,size*.55)}else{const shape=Math.sqrt(1-nx*nx),bodyTop=cy-size*.38*shape;ctx.fillStyle='#7b2c24';ctx.fillRect(x,bodyTop,2,size*.62*shape);if(Math.abs(nx)<.65){ctx.fillStyle='#bd5a35';ctx.fillRect(x,cy-size*.4*shape,2,size*.22*shape);if(Math.abs(nx)>.23&&Math.abs(nx)<.5){ctx.fillStyle='#f8d46a';ctx.fillRect(x,cy-size*.3*shape,2,Math.max(2,size*.045))}}}}}const gunW=W*.24,gunH=H*.32,gx=W/2-gunW/2,gy=H-gunH*.75;ctx.fillStyle='#1b1a1c';ctx.fillRect(gx,gy,gunW,gunH);ctx.fillStyle='#545457';ctx.fillRect(gx+gunW*.3,gy-gunH*.28,gunW*.4,gunH*.65);ctx.fillStyle='#777779';ctx.fillRect(gx+gunW*.39,gy-gunH*.35,gunW*.22,gunH*.35);ctx.fillStyle='#393536';ctx.fillRect(gx+gunW*.1,gy+gunH*.3,gunW*.8,gunH*.55);if(flash>0){ctx.fillStyle='#ffd064';ctx.beginPath();ctx.moveTo(W/2,gy-gunH*.65);ctx.lineTo(W/2-gunW*.22,gy-gunH*.22);ctx.lineTo(W/2+gunW*.22,gy-gunH*.22);ctx.fill()}ctx.strokeStyle='#e7ddbd';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W/2-9,H/2);ctx.lineTo(W/2-3,H/2);ctx.moveTo(W/2+3,H/2);ctx.lineTo(W/2+9,H/2);ctx.moveTo(W/2,H/2-9);ctx.lineTo(W/2,H/2-3);ctx.moveTo(W/2,H/2+3);ctx.lineTo(W/2,H/2+9);ctx.stroke();if(damageFlash){ctx.fillStyle=`rgba(230,0,0,${damageFlash*.6})`;ctx.fillRect(0,0,W,H)}if(showMap){const s=Math.min(W*.022,H*.034),ox=12,oy=55;ctx.fillStyle='#000b';ctx.fillRect(ox-5,oy-5,worldW*s+10,worldH*s+10);for(let y=0;y<worldH;y++)for(let x=0;x<worldW;x++){ctx.fillStyle=grid[y][x]?'#8b4a39':'#292e2c';ctx.fillRect(ox+x*s,oy+y*s,s-1,s-1)}ctx.fillStyle='#60ff88';ctx.fillRect(ox+exit.x*s-3,oy+exit.y*s-3,6,6);for(const e of enemies)if(e.alive){ctx.fillStyle='#f14b38';ctx.fillRect(ox+e.x*s-2,oy+e.y*s-2,4,4)}ctx.fillStyle='#ffed7a';ctx.beginPath();ctx.arc(ox+p.x*s,oy+p.y*s,3,0,Math.PI*2);ctx.fill()}document.getElementById('stats').textContent=`HEALTH ${health} · AMMO ${ammo}`;document.getElementById('kills').textContent=`KILLS ${killed}/${total}`;if(running&&killed===total){ctx.font='bold 18px system-ui';ctx.fillStyle='#85ff9a';ctx.textAlign='center';ctx.fillText('ALL CLEAR — FIND GREEN EXIT',W/2,H*.18)}}function frame(now){const dt=Math.min(.045,(now-last)/1000||0);last=now;update(dt);render(now);requestAnimationFrame(frame)}document.getElementById('start').onclick=reset;document.getElementById('mapbtn').onclick=()=>showMap=!showMap;document.getElementById('pausebtn').onclick=()=>{if(!running)return;paused=!paused;document.getElementById('pausebtn').textContent=paused?'RESUME':'PAUSE'};document.querySelectorAll('[data-key]').forEach(el=>{const k=el.dataset.key;el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);keys.add(k);el.classList.add('active')});for(const event of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(event,()=>{keys.delete(k);el.classList.remove('active')})});const bindings={w:'forward',s:'back',a:'strafeL',d:'strafeR',ArrowUp:'forward',ArrowDown:'back',ArrowLeft:'turnL',ArrowRight:'turnR',' ':'fire'};addEventListener('keydown',e=>{const k=bindings[e.key];if(k){e.preventDefault();keys.add(k)}});addEventListener('keyup',e=>{const k=bindings[e.key];if(k)keys.delete(k)});let dragging=false,lastX=0;canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(dragging&&running&&!paused){p.a=normalize(p.a+(e.clientX-lastX)*.006);lastX=e.clientX}});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);p={x:2.5,y:2.5,a:0};enemies=[];ammo=40;health=100;killed=0;total=7;flash=0;damageFlash=0;requestAnimationFrame(frame)})();
-</script></body></html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Android Launch Lab + DOOM</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{
+ margin:0 auto;padding:16px;max-width:900px;
+ background:#0b1220;color:#eef5ff;
+ font:15px system-ui,sans-serif
+}
+h1{font-size:27px;margin:8px 0}
+h2{font-size:20px;margin:28px 0 12px}
+h3{font-size:16px;margin:0 0 8px}
+p{color:#afbed3;line-height:1.5}
+.card{
+ background:#17263b;border:1px solid #354d69;
+ border-radius:13px;padding:15px;margin:12px 0
+}
+label{display:block;margin:12px 0 5px;font-weight:600}
+input,select,textarea{
+ width:100%;padding:12px;margin:5px 0 10px;
+ background:#0c1729;color:white;
+ border:1px solid #58708f;border-radius:8px;
+ font-size:16px
+}
+textarea{min-height:80px}
+button{
+ padding:11px 14px;background:#344d6e;
+ color:white;border:0;border-radius:8px;
+ margin:4px 4px 4px 0;font-weight:600
+}
+a.launch{
+ display:block;padding:15px;margin:12px 0;
+ background:#84e7c6;color:#10251e;
+ text-align:center;text-decoration:none;
+ font-weight:800;border-radius:9px
+}
+.actions{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px;margin:12px 0
+}
+.actions a{
+ background:#344d6e;color:white;
+ text-align:center;text-decoration:none;
+ border-radius:8px;padding:12px 5px;
+ font-size:13px;overflow-wrap:anywhere
+}
+.actions a:first-child{
+ background:#84e7c6;color:#10251e;
+ font-weight:700
+}
+code{
+ display:block;overflow-wrap:anywhere;
+ color:#bdd3f1;font-size:12px;
+ line-height:1.6
+}
+.muted{font-size:13px;color:#aabbd0}
+.badge{
+ display:inline-block;color:#84e7c6;
+ font-size:11px;text-transform:uppercase;
+ letter-spacing:1px;margin-bottom:7px
+}
+.doom{
+ background:linear-gradient(140deg,#531b20,#1a111c 70%);
+ border:1px solid #c24a42;
+ border-radius:15px;padding:22px 16px;
+ text-align:center;margin:20px 0
+}
+.doom h2{
+ font-size:32px;color:#ffb27e;
+ margin:0 0 6px;letter-spacing:3px
+}
+.doom .launch{
+ background:#f39a63;color:#2b1110;
+ font-size:19px;padding:18px
+}
+.doom p{color:#f1c6b7}
+#count{color:#84e7c6}
+</style>
+</head>
+<body>
+
+<h1>Android Launch Lab</h1>
+<p>
+Zebra TC52ax · Home Depot · Browser apps,
+Android intents, launchers and experiments.
+</p>
+
+<!-- DOOM -->
+<section class="doom">
+ <div class="badge">Browser game</div>
+ <h2>DOOM</h2>
+ <p>
+  Launch the touchscreen first-person shooter
+  directly from this working GitHub Pages site.
+ </p>
+
+ <a class="launch" href="./doom.html">
+  🎮 LAUNCH DOOM
+ </a>
+
+ <p class="muted">
+  Relative URL: ./doom.html
+ </p>
+
+ <button id="copyDoom">Copy DOOM URL</button>
+</section>
+
+<!-- CUSTOM GENERATOR -->
+<h2>1. Custom Intent Generator</h2>
+<div class="card">
+ <label>Application preset</label>
+ <select id="preset"></select>
+
+ <label>Package name</label>
+ <input id="pkg"
+ value="com.homedepot.sa.xp.firstphone">
+
+ <label>Activity class (optional)</label>
+ <input id="activity" placeholder=".MainActivity">
+
+ <label>Custom URI scheme</label>
+ <input id="scheme" placeholder="myapp">
+
+ <label>URI host/path</label>
+ <input id="path" placeholder="open/screen">
+
+ <label>Normal website URL</label>
+ <input id="weburl"
+ placeholder="https://example.com">
+
+ <label>Custom URL or intent</label>
+ <textarea id="customurl"
+ placeholder="Paste URL or intent://..."></textarea>
+
+ <button id="generate">Generate tests</button>
+</div>
+
+<div id="generated"></div>
+
+<h2>2. Home Depot and Zebra</h2>
+<div id="enterprise"></div>
+
+<h2>3. Android Home and Settings</h2>
+<div id="system"></div>
+
+<h2>4. Control Tests</h2>
+<p>
+Use normal links to compare against Chrome's
+Android intent handling.
+</p>
+<div id="controls"></div>
+
+<h2>5. App Catalog</h2>
+<div class="card">
+ <input id="search"
+ placeholder="Search apps or package names">
+ <select id="category"></select>
+ <p id="count"></p>
+</div>
+<div id="catalog"></div>
+
+<h2>6. Results Tracker</h2>
+<div class="card">
+ <p>
+  Select what happened after each test.
+  Results are saved locally in Chrome.
+ </p>
+ <div id="results"></div>
+ <button id="copyResults">Copy results</button>
+ <button id="clearResults">Clear results</button>
+</div>
+
+<script>
+"use strict";
+
+const $=id=>document.getElementById(id);
+
+const APPS=[
+ ["First Phone Launcher",
+ "com.homedepot.sa.xp.firstphone",
+ "Enterprise",""],
+
+ ["Home Depot GoLauncher",
+ "com.homedepot.sa.xp.golauncher",
+ "Enterprise",""],
+
+ ["Zebra DataWedge",
+ "com.symbol.datawedge",
+ "Enterprise",""],
+
+ ["Android Settings","com.android.settings",
+ "System",""],
+
+ ["System UI","com.android.systemui",
+ "System",""],
+
+ ["AOSP Files","com.android.documentsui",
+ "System",""],
+
+ ["Google Documents UI",
+ "com.google.android.documentsui",
+ "System",""],
+
+ ["Downloads",
+ "com.android.providers.downloads.ui",
+ "System",""],
+
+ ["AOSP Camera","com.android.camera2",
+ "System",""],
+
+ ["Package Installer",
+ "com.google.android.packageinstaller",
+ "System",""],
+
+ ["Bluetooth","com.android.bluetooth",
+ "System",""],
+
+ ["Chrome","com.android.chrome",
+ "Google","https://www.google.com"],
+
+ ["Play Store","com.android.vending",
+ "Google","https://play.google.com/store"],
+
+ ["YouTube","com.google.android.youtube",
+ "Google","https://www.youtube.com"],
+
+ ["Google Maps","com.google.android.apps.maps",
+ "Google","https://maps.google.com"],
+
+ ["Gmail","com.google.android.gm",
+ "Google","https://mail.google.com"],
+
+ ["Google Drive","com.google.android.apps.docs",
+ "Google","https://drive.google.com"],
+
+ ["Google Photos","com.google.android.apps.photos",
+ "Google","https://photos.google.com"],
+
+ ["Google Calendar","com.google.android.calendar",
+ "Google","https://calendar.google.com"],
+
+ ["Google Translate",
+ "com.google.android.apps.translate",
+ "Google","https://translate.google.com"],
+
+ ["Google Earth","com.google.earth",
+ "Google","https://earth.google.com"],
+
+ ["Google Files",
+ "com.google.android.apps.nbu.files",
+ "Google",""],
+
+ ["Google Messages",
+ "com.google.android.apps.messaging",
+ "Google","https://messages.google.com/web"],
+
+ ["Google Phone","com.google.android.dialer",
+ "Google",""],
+
+ ["Google Contacts",
+ "com.google.android.contacts",
+ "Google",""],
+
+ ["GO Launcher EX","com.gau.go.launcherex",
+ "Launchers",""],
+
+ ["Nova Launcher","com.teslacoilsw.launcher",
+ "Launchers",""],
+
+ ["Niagara Launcher","bitpit.launcher",
+ "Launchers",""],
+
+ ["Microsoft Launcher","com.microsoft.launcher",
+ "Launchers",""],
+
+ ["Smart Launcher","ginlemon.flowerfree",
+ "Launchers",""],
+
+ ["Lawnchair","app.lawnchair",
+ "Launchers",""],
+
+ ["KISS Launcher","fr.neamar.kiss",
+ "Launchers",""],
+
+ ["Olauncher","app.olauncher",
+ "Launchers",""],
+
+ ["Termux","com.termux",
+ "Tools","https://termux.dev"],
+
+ ["F-Droid","org.fdroid.fdroid",
+ "Tools","https://f-droid.org"],
+
+ ["Firefox","org.mozilla.firefox",
+ "Tools","https://www.mozilla.org/firefox"],
+
+ ["Brave","com.brave.browser",
+ "Tools","https://brave.com"],
+
+ ["Activity Launcher",
+ "de.szalkowski.activitylauncher",
+ "Tools",""],
+
+ ["Tasker","net.dinglisch.android.taskerm",
+ "Tools",""],
+
+ ["Automate","com.llamalab.automate",
+ "Tools",""],
+
+ ["AIDA64","com.finalwire.aida64",
+ "Tools",""],
+
+ ["CPU-Z","com.cpuid.cpu_z",
+ "Tools",""],
+
+ ["Solid Explorer","pl.solidexplorer2",
+ "Tools",""],
+
+ ["Total Commander",
+ "com.ghisler.android.TotalCommander",
+ "Tools",""],
+
+ ["WiFi Analyzer","com.vrem.wifianalyzer",
+ "Tools",""],
+
+ ["KDE Connect","org.kde.kdeconnect_tp",
+ "Tools","https://kdeconnect.kde.org"],
+
+ ["VLC","org.videolan.vlc",
+ "Media","https://www.videolan.org/vlc"],
+
+ ["Spotify","com.spotify.music",
+ "Media","https://open.spotify.com"],
+
+ ["Jellyfin","org.jellyfin.mobile",
+ "Media","https://jellyfin.org"],
+
+ ["Netflix","com.netflix.mediaclient",
+ "Media","https://www.netflix.com"],
+
+ ["Twitch","tv.twitch.android.app",
+ "Media","https://www.twitch.tv"],
+
+ ["Steam",
+ "com.valvesoftware.android.steam.community",
+ "Media","https://store.steampowered.com"],
+
+ ["Minecraft","com.mojang.minecraftpe",
+ "Media","https://www.minecraft.net"],
+
+ ["Bluesky","xyz.blueskyweb.app",
+ "Social","https://bsky.app"],
+
+ ["Discord","com.discord",
+ "Social","https://discord.com/app"],
+
+ ["Reddit","com.reddit.frontpage",
+ "Social","https://www.reddit.com"],
+
+ ["Telegram","org.telegram.messenger",
+ "Social","https://web.telegram.org"],
+
+ ["Signal","org.thoughtcrime.securesms",
+ "Social","https://signal.org"],
+
+ ["WhatsApp","com.whatsapp",
+ "Social","https://web.whatsapp.com"],
+
+ ["GitHub","com.github.android",
+ "Social","https://github.com"]
+];
+
+const STATIC=[
+ ["Home app settings",
+ "intent:#Intent;action=android.settings.HOME_SETTINGS;end",
+ "System"],
+
+ ["Home activity",
+ "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end",
+ "System"],
+
+ ["Android Settings",
+ "intent:#Intent;action=android.settings.SETTINGS;end",
+ "System"],
+
+ ["Application Settings",
+ "intent:#Intent;action=android.settings.APPLICATION_SETTINGS;end",
+ "System"],
+
+ ["Wi-Fi Settings",
+ "intent:#Intent;action=android.settings.WIFI_SETTINGS;end",
+ "System"],
+
+ ["Bluetooth Settings",
+ "intent:#Intent;action=android.settings.BLUETOOTH_SETTINGS;end",
+ "System"],
+
+ ["Accessibility Settings",
+ "intent:#Intent;action=android.settings.ACCESSIBILITY_SETTINGS;end",
+ "System"],
+
+ ["YouTube HTTPS",
+ "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+ "Controls"],
+
+ ["YouTube custom URI",
+ "vnd.youtube:dQw4w9WgXcQ",
+ "Controls"],
+
+ ["YouTube VIEW intent",
+ "intent://www.youtube.com/watch?v=dQw4w9WgXcQ#Intent;scheme=https;action=android.intent.action.VIEW;package=com.google.android.youtube;end",
+ "Controls"],
+
+ ["YouTube unbound intent",
+ "intent://www.youtube.com/watch?v=dQw4w9WgXcQ#Intent;scheme=https;action=android.intent.action.VIEW;end",
+ "Controls"],
+
+ ["Google Maps HTTPS",
+ "https://www.google.com/maps/search/?api=1&query=New+York",
+ "Controls"],
+
+ ["Google Maps geo URI",
+ "geo:0,0?q=New+York",
+ "Controls"],
+
+ ["Phone dialer","tel:5550100","Controls"],
+ ["SMS","sms:5550100","Controls"],
+ ["Email","mailto:test@example.com","Controls"],
+
+ ["Play Store",
+ "https://play.google.com/store",
+ "Controls"]
+];
+
+let saved={};
+
+try{
+ saved=JSON.parse(
+  localStorage.getItem("launchLabResults")||"{}"
+ );
+}catch{saved={}}
+
+function persist(){
+ try{
+  localStorage.setItem(
+   "launchLabResults",JSON.stringify(saved)
+  );
+ }catch{}
+}
+
+function intent(data,fields){
+ return "intent:"+data+"#Intent;"+
+  fields.join(";")+";end";
+}
+
+function launchIntent(pkg){
+ return intent("",[
+  "action=android.intent.action.MAIN",
+  "category=android.intent.category.LAUNCHER",
+  "package="+pkg
+ ]);
+}
+
+function viewIntent(pkg){
+ return intent("",[
+  "action=android.intent.action.VIEW",
+  "category=android.intent.category.BROWSABLE",
+  "package="+pkg
+ ]);
+}
+
+function webIntent(url,pkg=""){
+ try{
+  const u=new URL(url);
+  if(!["http:","https:"].includes(u.protocol))
+   return "";
+
+  const fields=[
+   "scheme="+u.protocol.slice(0,-1),
+   "action=android.intent.action.VIEW"
+  ];
+
+  if(pkg)fields.push("package="+pkg);
+
+  return intent(
+   "//"+u.host+u.pathname+u.search,
+   fields
+  );
+ }catch{return ""}
+}
+
+function link(label,url){
+ const a=document.createElement("a");
+ a.textContent=label;
+ a.href=url;
+ a.rel="noopener noreferrer";
+ return a;
+}
+
+async function copy(value){
+ try{
+  await navigator.clipboard.writeText(value);
+  alert("Copied");
+ }catch{
+  alert("Clipboard unavailable");
+ }
+}
+
+function selector(id){
+ const s=document.createElement("select");
+
+ const choices=[
+  ["","Record result..."],
+  ["opened","Opened app"],
+  ["browser","Opened browser"],
+  ["store","Opened Play Store"],
+  ["blocked","Blocked"],
+  ["nothing","Nothing happened"],
+  ["other","Other"]
+ ];
+
+ for(const [value,label] of choices){
+  const o=document.createElement("option");
+  o.value=value;
+  o.textContent=label;
+  s.append(o);
+ }
+
+ s.value=saved[id]||"";
+
+ s.onchange=()=>{
+  if(s.value)saved[id]=s.value;
+  else delete saved[id];
+  persist();
+  renderResults();
+ };
+
+ return s;
+}
+
+function testCard(name,url,group,description=""){
+ const card=document.createElement("div");
+ card.className="card";
+
+ const badge=document.createElement("div");
+ badge.className="badge";
+ badge.textContent=group;
+
+ const title=document.createElement("h3");
+ title.textContent=name;
+
+ const desc=document.createElement("p");
+ desc.className="muted";
+ desc.textContent=description;
+
+ const code=document.createElement("code");
+ code.textContent=url;
+
+ const a=link("Try launch",url);
+ a.className="launch";
+
+ const button=document.createElement("button");
+ button.textContent="Copy URL";
+ button.onclick=()=>copy(url);
+
+ card.append(
+  badge,title,desc,a,code,
+  button,selector(name+"|"+url)
+ );
+
+ return card;
+}
+
+function appCard(app){
+ const [name,pkg,group,web]=app;
+
+ const card=document.createElement("div");
+ card.className="card";
+
+ const badge=document.createElement("div");
+ badge.className="badge";
+ badge.textContent=group;
+
+ const title=document.createElement("h3");
+ title.textContent=name;
+
+ const code=document.createElement("code");
+ code.textContent=pkg;
+
+ const actions=document.createElement("div");
+ actions.className="actions";
+
+ actions.append(
+  link("Launch intent",launchIntent(pkg)),
+  link("VIEW intent",viewIntent(pkg)),
+  link("Play Store",
+   "https://play.google.com/store/apps/details?id="+
+   encodeURIComponent(pkg)),
+  link("Market URI",
+   "market://details?id="+encodeURIComponent(pkg))
+ );
+
+ if(web){
+  actions.append(link("Normal URL",web));
+
+  const w=webIntent(web);
+  if(w)actions.append(link("Website intent",w));
+
+  const targeted=webIntent(web,pkg);
+  if(targeted){
+   actions.append(
+    link("Targeted website intent",targeted)
+   );
+  }
+ }
+
+ const button=document.createElement("button");
+ button.textContent="Copy package";
+ button.onclick=()=>copy(pkg);
+
+ card.append(
+  badge,title,code,actions,button,
+  selector("App|"+pkg)
+ );
+
+ return card;
+}
+
+function populate(){
+ const preset=$("preset");
+
+ for(const app of APPS){
+  const option=document.createElement("option");
+  option.value=app[1];
+  option.textContent=app[0];
+  preset.append(option);
+ }
+
+ const custom=document.createElement("option");
+ custom.value="custom";
+ custom.textContent="Custom package";
+ preset.append(custom);
+
+ const categories=[
+  "All",...new Set(APPS.map(a=>a[2]))
+ ];
+
+ for(const value of categories){
+  const option=document.createElement("option");
+  option.value=value;
+  option.textContent=value;
+  $("category").append(option);
+ }
+
+ preset.onchange=()=>{
+  const app=APPS.find(a=>a[1]===preset.value);
+  $("pkg").value=app?app[1]:"";
+  $("weburl").value=app?app[3]:"";
+  generate();
+ };
+}
+
+function generate(){
+ const root=$("generated");
+ root.replaceChildren();
+
+ const pkg=$("pkg").value.trim();
+ const activity=$("activity").value.trim();
+ const scheme=$("scheme").value.trim();
+ const path=$("path").value.trim().replace(/^\/+/,"");
+ const web=$("weburl").value.trim();
+ const custom=$("customurl").value.trim();
+
+ const validPkg=
+  /^[A-Za-z_]\w*(\.[A-Za-z_]\w*)+$/.test(pkg);
+
+ const tests=[];
+
+ if(validPkg){
+  tests.push([
+   "MAIN / LAUNCHER",
+   launchIntent(pkg)
+  ]);
+
+  tests.push([
+   "VIEW / BROWSABLE",
+   viewIntent(pkg)
+  ]);
+
+  tests.push([
+   "Package only",
+   intent("",["package="+pkg])
+  ]);
+
+  tests.push([
+   "MAIN / DEFAULT",
+   intent("",[
+    "action=android.intent.action.MAIN",
+    "category=android.intent.category.DEFAULT",
+    "package="+pkg
+   ])
+  ]);
+
+  tests.push([
+   "Play Store listing",
+   "https://play.google.com/store/apps/details?id="+
+   encodeURIComponent(pkg)
+  ]);
+
+  tests.push([
+   "Market URI",
+   "market://details?id="+encodeURIComponent(pkg)
+  ]);
+
+  if(activity &&
+     /^[A-Za-z_$][\w.$]*$/.test(activity)){
+   const full=activity.startsWith(".")
+    ?pkg+activity:activity;
+
+   tests.push([
+    "Explicit activity",
+    intent("",[
+     "action=android.intent.action.MAIN",
+     "component="+pkg+"/"+full
+    ])
+   ]);
+  }
+
+  if(/^[a-z][a-z0-9+.-]*$/i.test(scheme)){
+   const location=path||"open";
+
+   tests.push([
+    "Custom scheme",
+    scheme+"://"+location
+   ]);
+
+   tests.push([
+    "Custom scheme intent",
+    intent("//"+location,[
+     "scheme="+scheme,
+     "action=android.intent.action.VIEW",
+     "package="+pkg
+    ])
+   ]);
+  }
+ }
+
+ if(/^https?:\/\//i.test(web)){
+  tests.push(["Normal website",web]);
+
+  const w=webIntent(web);
+  if(w)tests.push(["Website intent",w]);
+
+  if(validPkg){
+   const targeted=webIntent(web,pkg);
+   if(targeted){
+    tests.push([
+     "Targeted website intent",targeted
+    ]);
+   }
+  }
+ }
+
+ if(custom &&
+    /^[a-z][a-z0-9+.-]*:/i.test(custom) &&
+    !/^(javascript|data|file):/i.test(custom)){
+  tests.push(["Custom URL",custom]);
+ }
+
+ for(const [name,url] of tests){
+  root.append(testCard(name,url,"Generated"));
+ }
+
+ if(!tests.length){
+  root.textContent="Enter a package or URL.";
+ }
+}
+
+function renderStatic(){
+ $("enterprise").replaceChildren();
+ $("system").replaceChildren();
+ $("controls").replaceChildren();
+
+ for(const app of APPS.filter(
+  a=>a[2]==="Enterprise"
+ )){
+  $("enterprise").append(appCard(app));
+ }
+
+ for(const [name,url,group] of STATIC){
+  const target=group==="System"
+   ?$("system"):$("controls");
+
+  target.append(testCard(name,url,group));
+ }
+}
+
+function renderCatalog(){
+ const root=$("catalog");
+ root.replaceChildren();
+
+ const q=$("search").value.toLowerCase().trim();
+ const category=$("category").value;
+
+ const matches=APPS.filter(a=>
+  (category==="All"||a[2]===category) &&
+  (a[0].toLowerCase().includes(q) ||
+   a[1].toLowerCase().includes(q))
+ );
+
+ $("count").textContent=
+  matches.length+" of "+APPS.length+" apps";
+
+ for(const app of matches){
+  root.append(appCard(app));
+ }
+}
+
+function renderResults(){
+ const root=$("results");
+ root.replaceChildren();
+
+ const entries=Object.entries(saved);
+
+ if(!entries.length){
+  root.textContent="No results recorded.";
+  return;
+ }
+
+ for(const [id,result] of entries){
+  const p=document.createElement("p");
+  p.textContent=id+" → "+result;
+  root.append(p);
+ }
+}
+
+$("copyDoom").onclick=()=>{
+ copy(new URL("./doom.html",location.href).href);
+};
+
+$("generate").onclick=generate;
+
+$("search").oninput=renderCatalog;
+$("category").onchange=renderCatalog;
+
+$("copyResults").onclick=()=>{
+ copy(
+  Object.entries(saved)
+   .map(([id,result])=>id+" => "+result)
+   .join("\n")
+ );
+};
+
+$("clearResults").onclick=()=>{
+ if(!confirm("Clear results?"))return;
+ saved={};
+ persist();
+ renderStatic();
+ generate();
+ renderCatalog();
+ renderResults();
+};
+
+for(const id of [
+ "pkg","activity","scheme","path",
+ "weburl","customurl"
+]){
+ $(id).addEventListener("input",generate);
+}
+
+populate();
+renderStatic();
+generate();
+renderCatalog();
+renderResults();
+</script>
+</body>
+</html>
