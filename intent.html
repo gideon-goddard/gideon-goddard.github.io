@@ -9,713 +9,895 @@
 :root{color-scheme:dark}
 *{box-sizing:border-box}
 body{
-  margin:auto;padding:18px;max-width:850px;
-  background:#0b1220;color:#edf4ff;
-  font:15px system-ui,sans-serif
+ margin:0 auto;padding:18px;max-width:900px;
+ background:#0b1220;color:#eef5ff;
+ font:15px system-ui,-apple-system,sans-serif
 }
-h1{font-size:27px;margin-bottom:4px}
-h2{font-size:20px;margin-top:30px}
-p{color:#afbed3;line-height:1.5}
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:20px;margin:30px 0 12px}
+h3{font-size:16px;margin:0 0 8px}
+p{color:#adbed3;line-height:1.5}
+small,.muted{color:#9eb0c8}
 .card{
-  background:#17253a;border:1px solid #354b67;
-  border-radius:13px;padding:15px;margin:12px 0
+ background:#17263b;border:1px solid #364e6b;
+ border-radius:13px;padding:15px;margin:12px 0
 }
-label{display:block;margin:12px 0 5px}
 input,select,textarea{
-  width:100%;padding:12px;font-size:16px;
-  color:white;background:#0c1729;
-  border:1px solid #526987;border-radius:8px
+ width:100%;padding:12px;margin:6px 0 12px;
+ border:1px solid #58708f;border-radius:8px;
+ background:#0c1729;color:white;font-size:16px
 }
-textarea{min-height:85px}
-a.launch{
-  display:block;padding:13px;margin:12px 0;
-  background:#84e7c6;color:#09261d;
-  text-align:center;font-weight:700;
-  border-radius:9px;text-decoration:none
-}
+label{display:block;font-weight:600;margin-top:10px}
+textarea{min-height:90px}
 button{
-  background:#344d70;color:white;border:0;
-  padding:10px 13px;border-radius:8px;
-  margin:5px 5px 5px 0
+ background:#354f70;color:white;border:0;
+ padding:11px 14px;border-radius:8px;
+ font-weight:600;cursor:pointer;margin:4px 4px 4px 0
+}
+button.primary{background:#84e7c6;color:#10251e}
+button.danger{background:#633d48}
+.actions{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px;margin:12px 0
+}
+.actions a{
+ display:flex;align-items:center;justify-content:center;
+ min-height:44px;padding:10px 6px;
+ background:#344d6e;color:white;border-radius:8px;
+ text-decoration:none;text-align:center;font-size:13px;
+ overflow-wrap:anywhere
+}
+.actions a:first-child{
+ background:#83e6c5;color:#0b291f;font-weight:700
 }
 code{
-  display:block;overflow-wrap:anywhere;
-  color:#b9d1f5;font-size:12px;line-height:1.6
+ display:block;color:#c5d8f2;font-size:12px;
+ overflow-wrap:anywhere;line-height:1.6
 }
-.small{font-size:12px;color:#a8b7cc}
-.tag{
-  font-size:11px;color:#83e7c5;
-  text-transform:uppercase;letter-spacing:1px
+.badge{
+ display:inline-block;color:#8be7c9;
+ font-size:11px;text-transform:uppercase;
+ letter-spacing:.8px;margin-bottom:7px
 }
-.controls{display:flex;gap:7px;flex-wrap:wrap}
-.controls button{flex:1}
-summary{cursor:pointer;font-weight:700}
-#status{color:#84e7c6}
+.grid{
+ display:grid;grid-template-columns:1fr 1fr;gap:10px
+}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+details{margin:12px 0}
+summary{cursor:pointer;font-weight:700;padding:8px 0}
+#toast{
+ position:fixed;bottom:18px;left:50%;
+ transform:translateX(-50%);
+ background:#84e7c6;color:#10251e;
+ padding:12px 20px;border-radius:9px;
+ display:none;z-index:100
+}
+.result{
+ margin-top:10px;padding:10px;
+ border-top:1px solid #405573
+}
+.result select{margin:4px 0}
+#catalogCount{font-size:13px;color:#8be7c9}
 </style>
 </head>
-
 <body>
 
 <h1>Android Launch Lab</h1>
 <p>
-Zebra TC52ax · Chrome · Android deep-link experiments
+Zebra TC52ax · Home Depot · Android app and
+deep-link diagnostics
 </p>
 
 <div class="card">
-<strong>Known installed packages</strong>
-<p class="small">
-First Phone Launcher:
-com.homedepot.sa.xp.firstphone
-</p>
-<p class="small">
-Home Depot GoLauncher:
-com.homedepot.sa.xp.golauncher
-</p>
-<p class="small">
-Zebra DataWedge:
-com.symbol.datawedge
-</p>
+ <strong>What we're testing</strong>
+ <p>
+  Normal websites, Android App Links, custom schemes,
+  intent URLs, launcher activities, system settings,
+  and Play Store handlers.
+ </p>
+ <small>
+  A Play Store redirect does not prove an app is
+  missing. Browser launches require compatible,
+  exported activities. Enterprise policy may
+  restrict available applications.
+ </small>
 </div>
 
-<h2>1. Application selector</h2>
-
+<h2>1. Custom launch generator</h2>
 <div class="card">
+ <label for="preset">Application</label>
+ <select id="preset"></select>
 
-<label>Choose application</label>
-<select id="preset">
-<option value="com.homedepot.sa.xp.firstphone">
-Home Depot First Phone
-</option>
-<option value="com.homedepot.sa.xp.golauncher">
-Home Depot GoLauncher
-</option>
-<option value="com.symbol.datawedge">
-Zebra DataWedge
-</option>
-<option value="com.google.android.youtube">
-YouTube
-</option>
-<option value="com.android.chrome">
-Chrome
-</option>
-<option value="com.android.settings">
-Android Settings
-</option>
-<option value="custom">
-Custom package
-</option>
-</select>
+ <label for="pkg">Package name</label>
+ <input id="pkg"
+ value="com.homedepot.sa.xp.firstphone">
 
-<label>Package name</label>
-<input id="pkg"
-value="com.homedepot.sa.xp.firstphone">
+ <label for="activity">Activity class (optional)</label>
+ <input id="activity" placeholder=".MainActivity">
 
-<label>Activity class (optional)</label>
-<input id="activity"
-placeholder=".MainActivity">
+ <label for="scheme">Custom URI scheme</label>
+ <input id="scheme" placeholder="myapp">
 
-<label>Custom scheme</label>
-<input id="scheme"
-placeholder="myapp">
+ <label for="path">URI host/path</label>
+ <input id="path" placeholder="open/screen">
 
-<label>Host / path</label>
-<input id="path"
-placeholder="open/screen">
+ <label for="weburl">Normal website URL</label>
+ <input id="weburl"
+ placeholder="https://example.com/open">
 
-<label>Normal HTTPS URL</label>
-<input id="weburl"
-placeholder="https://example.com/open">
+ <label for="customurl">Any custom URL</label>
+ <textarea id="customurl"
+ placeholder="https://example.com or intent://..."></textarea>
 
-<label>Custom URL or intent</label>
-<textarea id="customurl"
-placeholder="Paste any URL or intent:// URI"></textarea>
-
-<button onclick="generate()">Generate links</button>
-<button onclick="resetFields()">Reset fields</button>
-
+ <button class="primary" id="generateBtn">
+  Generate tests
+ </button>
+ <button id="resetBtn">Reset</button>
 </div>
 
-<h2>2. Generated launch methods</h2>
 <div id="generated"></div>
 
-<h2>3. Known working control tests</h2>
+<h2>2. Home Depot / Zebra</h2>
+<div id="enterprise"></div>
+
+<h2>3. Android Home and settings</h2>
+<div id="system"></div>
+
+<h2>4. Known control tests</h2>
 <p>
-These help determine which Android link mechanisms
-work on the device.
+Use these to check whether ordinary Android App Links
+and URI handlers work.
 </p>
 <div id="controls"></div>
 
-<h2>4. Home launcher and settings</h2>
-<div id="home"></div>
-
-<h2>5. Normal Android URL schemes</h2>
-<div id="schemes"></div>
-
-<h2>6. Custom URL test</h2>
-<div id="customtest"></div>
-
-<h2>7. Test result log</h2>
+<h2>5. App catalog</h2>
 <div class="card">
-<p class="small">
-Record what happened after returning to this page.
-Results are saved in this browser.
-</p>
-<div id="log"></div>
-<button onclick="copyLog()">Copy results</button>
-<button onclick="clearLog()">Clear results</button>
+ <input id="search" placeholder="Search apps or packages">
+ <select id="category"></select>
+ <div id="catalogCount"></div>
+</div>
+<div id="catalog"></div>
+
+<h2>6. Test results</h2>
+<div class="card">
+ <p>
+  Record what happened after tapping a test.
+  Results are saved locally in this browser.
+ </p>
+ <div id="results"></div>
+ <button id="copyResults">Copy results</button>
+ <button class="danger" id="clearResults">
+  Clear results
+ </button>
 </div>
 
-<p class="small">
-All tests require a user tap. Chrome cannot directly
-invoke arbitrary non-exported activities or override
-enterprise device-management restrictions.
-</p>
+<div id="toast"></div>
 
 <script>
 "use strict";
 
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
 
-const packages = {
- first:"com.homedepot.sa.xp.firstphone",
- go:"com.homedepot.sa.xp.golauncher",
- wedge:"com.symbol.datawedge",
- youtube:"com.google.android.youtube"
-};
+const APPS=[
+ // Enterprise
+ ["First Phone Launcher",
+  "com.homedepot.sa.xp.firstphone",
+  "Enterprise",""],
+ ["Home Depot GoLauncher",
+  "com.homedepot.sa.xp.golauncher",
+  "Enterprise",""],
+ ["Zebra DataWedge",
+  "com.symbol.datawedge",
+  "Enterprise",""],
 
-let tests = [];
-let results = {};
+ // Android system
+ ["Android Settings","com.android.settings",
+  "System",""],
+ ["System UI","com.android.systemui",
+  "System",""],
+ ["AOSP Files","com.android.documentsui",
+  "System",""],
+ ["Google Documents UI",
+  "com.google.android.documentsui",
+  "System",""],
+ ["Downloads","com.android.providers.downloads.ui",
+  "System",""],
+ ["AOSP Camera","com.android.camera2",
+  "System",""],
+ ["Package Installer",
+  "com.google.android.packageinstaller",
+  "System",""],
+ ["AOSP Package Installer",
+  "com.android.packageinstaller",
+  "System",""],
+ ["Bluetooth","com.android.bluetooth",
+  "System",""],
 
-try {
- results = JSON.parse(
-   localStorage.getItem("intent-lab-results") || "{}"
+ // Google
+ ["Chrome","com.android.chrome",
+  "Google","https://www.google.com"],
+ ["Play Store","com.android.vending",
+  "Google","https://play.google.com/store"],
+ ["YouTube","com.google.android.youtube",
+  "Google","https://www.youtube.com"],
+ ["Google Maps","com.google.android.apps.maps",
+  "Google","https://maps.google.com"],
+ ["Gmail","com.google.android.gm",
+  "Google","https://mail.google.com"],
+ ["Google Drive","com.google.android.apps.docs",
+  "Google","https://drive.google.com"],
+ ["Google Photos","com.google.android.apps.photos",
+  "Google","https://photos.google.com"],
+ ["Google Calendar","com.google.android.calendar",
+  "Google","https://calendar.google.com"],
+ ["Google Translate",
+  "com.google.android.apps.translate",
+  "Google","https://translate.google.com"],
+ ["Google Earth","com.google.earth",
+  "Google","https://earth.google.com"],
+ ["Google Files",
+  "com.google.android.apps.nbu.files",
+  "Google",""],
+ ["Google Messages",
+  "com.google.android.apps.messaging",
+  "Google","https://messages.google.com/web"],
+ ["Google Phone","com.google.android.dialer",
+  "Google",""],
+ ["Google Contacts",
+  "com.google.android.contacts",
+  "Google",""],
+ ["Google Clock",
+  "com.google.android.deskclock",
+  "Google",""],
+ ["Google Calculator",
+  "com.google.android.calculator",
+  "Google",""],
+
+ // Launchers
+ ["GO Launcher EX","com.gau.go.launcherex",
+  "Launchers",""],
+ ["Nova Launcher","com.teslacoilsw.launcher",
+  "Launchers",""],
+ ["Niagara Launcher","bitpit.launcher",
+  "Launchers",""],
+ ["Microsoft Launcher","com.microsoft.launcher",
+  "Launchers",""],
+ ["Smart Launcher","ginlemon.flowerfree",
+  "Launchers",""],
+ ["Lawnchair","app.lawnchair",
+  "Launchers",""],
+ ["KISS Launcher","fr.neamar.kiss",
+  "Launchers",""],
+ ["Olauncher","app.olauncher",
+  "Launchers",""],
+
+ // Developer tools
+ ["Termux","com.termux",
+  "Tools","https://termux.dev"],
+ ["F-Droid","org.fdroid.fdroid",
+  "Tools","https://f-droid.org"],
+ ["Firefox","org.mozilla.firefox",
+  "Tools","https://www.mozilla.org/firefox"],
+ ["Brave","com.brave.browser",
+  "Tools","https://brave.com"],
+ ["Activity Launcher",
+  "de.szalkowski.activitylauncher",
+  "Tools",""],
+ ["Tasker","net.dinglisch.android.taskerm",
+  "Tools",""],
+ ["Automate","com.llamalab.automate",
+  "Tools",""],
+ ["AIDA64","com.finalwire.aida64",
+  "Tools",""],
+ ["CPU-Z","com.cpuid.cpu_z",
+  "Tools",""],
+ ["Solid Explorer","pl.solidexplorer2",
+  "Tools",""],
+ ["Total Commander",
+  "com.ghisler.android.TotalCommander",
+  "Tools",""],
+ ["WiFi Analyzer","com.vrem.wifianalyzer",
+  "Tools",""],
+ ["KDE Connect","org.kde.kdeconnect_tp",
+  "Tools","https://kdeconnect.kde.org"],
+
+ // Media and entertainment
+ ["VLC","org.videolan.vlc",
+  "Media","https://www.videolan.org/vlc"],
+ ["Spotify","com.spotify.music",
+  "Media","https://open.spotify.com"],
+ ["Jellyfin","org.jellyfin.mobile",
+  "Media","https://jellyfin.org"],
+ ["Netflix","com.netflix.mediaclient",
+  "Media","https://www.netflix.com"],
+ ["Twitch","tv.twitch.android.app",
+  "Media","https://www.twitch.tv"],
+ ["Steam",
+  "com.valvesoftware.android.steam.community",
+  "Media","https://store.steampowered.com"],
+ ["Minecraft","com.mojang.minecraftpe",
+  "Media","https://www.minecraft.net"],
+
+ // Social
+ ["Bluesky","xyz.blueskyweb.app",
+  "Social","https://bsky.app"],
+ ["Discord","com.discord",
+  "Social","https://discord.com/app"],
+ ["Reddit","com.reddit.frontpage",
+  "Social","https://www.reddit.com"],
+ ["Telegram","org.telegram.messenger",
+  "Social","https://web.telegram.org"],
+ ["Signal","org.thoughtcrime.securesms",
+  "Social","https://signal.org"],
+ ["WhatsApp","com.whatsapp",
+  "Social","https://web.whatsapp.com"],
+ ["GitHub","com.github.android",
+  "Social","https://github.com"]
+];
+
+const STATIC_TESTS=[
+ ["Android Home settings",
+  "intent:#Intent;action=android.settings.HOME_SETTINGS;end",
+  "System"],
+ ["Android Home activity",
+  "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end",
+  "System"],
+ ["Android Settings",
+  "intent:#Intent;action=android.settings.SETTINGS;end",
+  "System"],
+ ["Application Settings",
+  "intent:#Intent;action=android.settings.APPLICATION_SETTINGS;end",
+  "System"],
+ ["Accessibility Settings",
+  "intent:#Intent;action=android.settings.ACCESSIBILITY_SETTINGS;end",
+  "System"],
+ ["Bluetooth Settings",
+  "intent:#Intent;action=android.settings.BLUETOOTH_SETTINGS;end",
+  "System"],
+ ["Wi-Fi Settings",
+  "intent:#Intent;action=android.settings.WIFI_SETTINGS;end",
+  "System"],
+ ["Display Settings",
+  "intent:#Intent;action=android.settings.DISPLAY_SETTINGS;end",
+  "System"],
+ ["YouTube normal HTTPS",
+  "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "Controls"],
+ ["YouTube custom URI",
+  "vnd.youtube:dQw4w9WgXcQ",
+  "Controls"],
+ ["YouTube VIEW intent",
+  "intent://www.youtube.com/watch?v=dQw4w9WgXcQ#Intent;scheme=https;action=android.intent.action.VIEW;package=com.google.android.youtube;end",
+  "Controls"],
+ ["YouTube unbound intent",
+  "intent://www.youtube.com/watch?v=dQw4w9WgXcQ#Intent;scheme=https;action=android.intent.action.VIEW;end",
+  "Controls"],
+ ["Google Maps HTTPS",
+  "https://www.google.com/maps/search/?api=1&query=New+York",
+  "Controls"],
+ ["Google Maps geo URI",
+  "geo:0,0?q=New+York",
+  "Controls"],
+ ["Phone dialer","tel:5550100","Controls"],
+ ["SMS","sms:5550100","Controls"],
+ ["Email","mailto:test@example.com","Controls"],
+ ["Google Play website",
+  "https://play.google.com/store",
+  "Controls"],
+ ["Google Play market scheme",
+  "market://search?q=launcher",
+  "Controls"]
+];
+
+let resultMap={};
+try{
+ resultMap=JSON.parse(
+  localStorage.getItem("androidLaunchLabResults")||"{}"
  );
-} catch {
- results = {};
+}catch{resultMap={}}
+
+function toast(message){
+ const el=$("toast");
+ el.textContent=message;
+ el.style.display="block";
+ setTimeout(()=>el.style.display="none",1800);
 }
 
-function saveResults() {
- try {
+function save(){
+ try{
   localStorage.setItem(
-   "intent-lab-results",
-   JSON.stringify(results)
+   "androidLaunchLabResults",
+   JSON.stringify(resultMap)
   );
- } catch {}
+ }catch{}
 }
 
-function add(name,url,group,description="") {
- if (!url) return;
-
- tests.push({
-  id:group+"|"+name+"|"+url,
-  name,url,group,description
- });
+function intent(data,fields){
+ return "intent:"+data+"#Intent;"+
+  fields.join(";")+";end";
 }
 
-function intent(data,parts) {
- return "intent:" + data +
-   "#Intent;" + parts.join(";") + ";end";
+function mainIntent(pkg){
+ return intent("",[
+  "action=android.intent.action.MAIN",
+  "category=android.intent.category.LAUNCHER",
+  "package="+pkg
+ ]);
 }
 
-function createCard(test) {
- const box=document.createElement("div");
- box.className="card";
+function viewIntent(pkg){
+ return intent("",[
+  "action=android.intent.action.VIEW",
+  "category=android.intent.category.BROWSABLE",
+  "package="+pkg
+ ]);
+}
 
- const tag=document.createElement("div");
- tag.className="tag";
- tag.textContent=test.group;
+function websiteIntent(url,pkg=""){
+ try{
+  const u=new URL(url);
+  if(!["https:","http:"].includes(u.protocol))
+   return "";
 
- const title=document.createElement("strong");
- title.textContent=test.name;
+  const fields=[
+   "scheme="+u.protocol.slice(0,-1),
+   "action=android.intent.action.VIEW"
+  ];
 
- const info=document.createElement("p");
- info.className="small";
- info.textContent=test.description;
+  if(pkg)fields.push("package="+pkg);
 
- const code=document.createElement("code");
- code.textContent=test.url;
+  return intent(
+   "//"+u.host+u.pathname+u.search,
+   fields
+  );
+ }catch{return ""}
+}
 
- const link=document.createElement("a");
- link.className="launch";
- link.href=test.url;
- link.textContent="TRY LAUNCH";
+function makeLink(label,url){
+ const a=document.createElement("a");
+ a.textContent=label;
+ a.href=url;
+ a.rel="noopener noreferrer";
+ return a;
+}
 
- const copy=document.createElement("button");
- copy.textContent="Copy URL";
- copy.onclick=async()=>{
-  try {
-   await navigator.clipboard.writeText(test.url);
-   copy.textContent="Copied!";
-  } catch {
-   copy.textContent="Copy failed";
+function copyButton(value,label="Copy URL"){
+ const button=document.createElement("button");
+ button.textContent=label;
+ button.onclick=async()=>{
+  try{
+   await navigator.clipboard.writeText(value);
+   toast("Copied");
+  }catch{
+   toast("Clipboard unavailable");
   }
  };
+ return button;
+}
 
+function resultSelector(id){
  const select=document.createElement("select");
  const choices=[
   ["","Record result..."],
   ["opened","Opened app"],
-  ["chrome","Stayed in Chrome"],
+  ["browser","Opened browser"],
   ["store","Opened Play Store"],
   ["blocked","Blocked"],
   ["nothing","Nothing happened"],
   ["other","Other"]
  ];
 
- for(const [value,label] of choices) {
+ for(const [value,label] of choices){
   const option=document.createElement("option");
   option.value=value;
   option.textContent=label;
   select.append(option);
  }
 
- select.value=results[test.id] || "";
-
+ select.value=resultMap[id]||"";
  select.onchange=()=>{
-  if(select.value) {
-   results[test.id]=select.value;
-  } else {
-   delete results[test.id];
-  }
-  saveResults();
-  renderLog();
+  if(select.value)resultMap[id]=select.value;
+  else delete resultMap[id];
+  save();
+  renderResults();
  };
 
- box.append(
-  tag,title,info,link,code,
-  document.createElement("br"),
-  copy,select
+ return select;
+}
+
+function makeTest(name,url,category,description=""){
+ const card=document.createElement("div");
+ card.className="card";
+
+ const badge=document.createElement("div");
+ badge.className="badge";
+ badge.textContent=category;
+
+ const title=document.createElement("h3");
+ title.textContent=name;
+
+ const desc=document.createElement("p");
+ desc.className="muted";
+ desc.textContent=description;
+
+ const code=document.createElement("code");
+ code.textContent=url;
+
+ const actions=document.createElement("div");
+ actions.className="actions";
+ actions.append(makeLink("Try launch",url));
+
+ if(url.startsWith("intent:")){
+  actions.append(
+   makeLink("Open same URL",url)
+  );
+ }
+
+ const id=name+"|"+url;
+
+ const result=document.createElement("div");
+ result.className="result";
+ result.append(resultSelector(id));
+
+ card.append(
+  badge,title,desc,actions,code,
+  copyButton(url),result
  );
 
- return box;
+ return card;
 }
 
-function renderGroup(group,target) {
- const container=$(target);
+function makeAppCard(app){
+ const [name,pkg,category,web]=app;
+
+ const card=document.createElement("div");
+ card.className="card";
+
+ const badge=document.createElement("div");
+ badge.className="badge";
+ badge.textContent=category;
+
+ const title=document.createElement("h3");
+ title.textContent=name;
+
+ const code=document.createElement("code");
+ code.textContent=pkg;
+
+ const actions=document.createElement("div");
+ actions.className="actions";
+
+ actions.append(
+  makeLink("Launch intent",mainIntent(pkg)),
+  makeLink("VIEW intent",viewIntent(pkg)),
+  makeLink(
+   "Play Store",
+   "https://play.google.com/store/apps/details?id="+
+   encodeURIComponent(pkg)
+  ),
+  makeLink(
+   "Market URI",
+   "market://details?id="+encodeURIComponent(pkg)
+  )
+ );
+
+ if(web){
+  actions.append(makeLink("Normal URL",web));
+
+  const wIntent=websiteIntent(web);
+  if(wIntent)
+   actions.append(makeLink("Website intent",wIntent));
+
+  const targeted=websiteIntent(web,pkg);
+  if(targeted)
+   actions.append(
+    makeLink("Targeted website intent",targeted)
+   );
+ }
+
+ const selector=resultSelector(
+  "App launch|"+name+"|"+pkg
+ );
+
+ card.append(
+  badge,title,code,actions,
+  copyButton(pkg,"Copy package"),
+  selector
+ );
+
+ return card;
+}
+
+function renderStatic(){
+ const enterprise=$("enterprise");
+ const system=$("system");
+ const controls=$("controls");
+
+ enterprise.replaceChildren();
+ system.replaceChildren();
+ controls.replaceChildren();
+
+ for(const app of APPS.filter(
+  a=>a[2]==="Enterprise"
+ )){
+  enterprise.append(makeAppCard(app));
+ }
+
+ for(const [name,url,category] of STATIC_TESTS){
+  const target=category==="System"
+   ?system:controls;
+  target.append(makeTest(name,url,category));
+ }
+}
+
+function populate(){
+ const preset=$("preset");
+ preset.replaceChildren();
+
+ for(const app of APPS){
+  const option=document.createElement("option");
+  option.value=app[1];
+  option.textContent=app[0]+" — "+app[2];
+  preset.append(option);
+ }
+
+ const custom=document.createElement("option");
+ custom.value="custom";
+ custom.textContent="Custom package";
+ preset.append(custom);
+
+ const category=$("category");
+ const categories=[
+  "All",...new Set(APPS.map(a=>a[2]))
+ ];
+
+ for(const value of categories){
+  const option=document.createElement("option");
+  option.value=value;
+  option.textContent=value;
+  category.append(option);
+ }
+
+ preset.onchange=()=>{
+  const selected=APPS.find(
+   a=>a[1]===preset.value
+  );
+  $("pkg").value=selected?selected[1]:"";
+  $("weburl").value=selected?selected[3]:"";
+  generate();
+ };
+}
+
+function generate(){
+ const container=$("generated");
  container.replaceChildren();
-
- for(const test of tests.filter(t=>t.group===group)){
-  container.append(createCard(test));
- }
-}
-
-function renderLog() {
- const container=$("log");
- container.replaceChildren();
-
- const recorded=Object.entries(results);
-
- if(!recorded.length) {
-  container.textContent="No results recorded yet.";
-  return;
- }
-
- for(const [id,result] of recorded) {
-  const p=document.createElement("p");
-  const name=id.split("|")[1] || id;
-  p.textContent=name+" → "+result;
-  container.append(p);
- }
-}
-
-function copyLog() {
- const text=Object.entries(results)
-  .map(([id,result])=>id+" => "+result)
-  .join("\n");
-
- navigator.clipboard.writeText(text)
-  .then(()=>alert("Results copied"))
-  .catch(()=>alert("Copy unavailable"));
-}
-
-function clearLog() {
- if(!confirm("Clear recorded results?")) return;
- results={};
- saveResults();
- generate();
-}
-
-function generate() {
- tests=[];
 
  const pkg=$("pkg").value.trim();
  const activity=$("activity").value.trim();
  const scheme=$("scheme").value.trim();
- const path=$("path").value.trim()
-  .replace(/^\/+/,"");
- const weburl=$("weburl").value.trim();
+ const path=$("path").value.trim().replace(/^\/+/,"");
+ const web=$("weburl").value.trim();
  const custom=$("customurl").value.trim();
 
  const validPkg=
   /^[A-Za-z_]\w*(\.[A-Za-z_]\w*)+$/.test(pkg);
 
- if(validPkg) {
-  const main=[
-   "action=android.intent.action.MAIN",
-   "category=android.intent.category.LAUNCHER",
-   "package="+pkg
-  ];
+ const tests=[];
 
-  add(
+ if(validPkg){
+  tests.push([
    "MAIN / LAUNCHER",
-   intent("",main),
-   "generated",
-   "Package-targeted launcher request."
-  );
+   mainIntent(pkg),
+   "Requests an app launcher activity."
+  ]);
 
-  add(
+  tests.push([
    "VIEW / BROWSABLE",
-   intent("",[
-    "action=android.intent.action.VIEW",
-    "category=android.intent.category.BROWSABLE",
-    "package="+pkg
-   ]),
-   "generated",
+   viewIntent(pkg),
    "Requests a browser-accessible VIEW activity."
-  );
+  ]);
 
-  add(
+  tests.push([
+   "Package-only intent",
+   intent("",["package="+pkg]),
+   "Tests package-only resolution."
+  ]);
+
+  tests.push([
    "MAIN / DEFAULT",
    intent("",[
     "action=android.intent.action.MAIN",
     "category=android.intent.category.DEFAULT",
     "package="+pkg
    ]),
-   "generated",
-   "Alternative implicit intent."
-  );
+   "Tests a different implicit action/category."
+  ]);
 
-  add(
-   "Package-only intent",
-   intent("",["package="+pkg]),
-   "generated",
-   "Tests package-only resolution."
-  );
-
-  add(
-   "HTTPS VIEW intent",
-   intent("//example.com/open",[
-    "scheme=https",
-    "action=android.intent.action.VIEW",
-    "category=android.intent.category.BROWSABLE",
-    "package="+pkg
-   ]),
-   "generated",
-   "Diagnostic HTTPS intent. The app must handle this URL."
-  );
-
-  add(
-   "No-store fallback test",
-   intent("//example.com/open",[
-    "scheme=https",
-    "action=android.intent.action.VIEW",
-    "package="+pkg,
-    "S.browser_fallback_url="+
-     encodeURIComponent(
-      "https://example.com/?intent-failed=1"
-     )
-   ]),
-   "generated",
-   "Uses a browser fallback rather than relying on a store redirect."
-  );
-
-  add(
-   "Play Store HTTPS",
+  tests.push([
+   "Play Store listing",
    "https://play.google.com/store/apps/details?id="+
     encodeURIComponent(pkg),
-   "generated",
-   "Checks the public store listing; not an app launch."
-  );
+   "Opens the package listing if publicly available."
+  ]);
 
-  add(
-   "Play Store market URI",
+  tests.push([
+   "Market URI",
    "market://details?id="+encodeURIComponent(pkg),
-   "generated",
-   "Opens a package listing if the market handler supports it."
-  );
+   "Requests the installed market handler."
+  ]);
 
-  if(activity) {
+  if(activity){
    const full=activity.startsWith(".")
     ?pkg+activity:activity;
 
-   add(
-    "Explicit activity component",
+   tests.push([
+    "Explicit component",
     intent("",[
      "action=android.intent.action.MAIN",
      "component="+pkg+"/"+full
     ]),
-    "generated",
-    "Requires the exact exported activity; Chrome may reject it."
-   );
+    "Requires an existing exported activity."
+   ]);
   }
 
-  if(/^[a-z][a-z0-9+.-]*$/i.test(scheme)) {
-   const location=path || "open";
+  if(/^[a-z][a-z0-9+.-]*$/i.test(scheme)){
+   const location=path||"open";
 
-   add(
+   tests.push([
     "Custom scheme direct",
     scheme+"://"+location,
-    "generated",
-    "Requires an app registered for this scheme."
-   );
+    "Requires a registered URI handler."
+   ]);
 
-   add(
-    "Custom scheme + package",
+   tests.push([
+    "Custom scheme intent",
     intent("//"+location,[
      "scheme="+scheme,
      "action=android.intent.action.VIEW",
-     "category=android.intent.category.BROWSABLE",
      "package="+pkg
     ]),
-    "generated",
-    "Custom-scheme intent with package targeting."
-   );
+    "Tests scheme resolution with package targeting."
+   ]);
 
-   add(
+   tests.push([
     "Custom scheme without package",
     intent("//"+location,[
      "scheme="+scheme,
      "action=android.intent.action.VIEW"
     ]),
-    "generated",
-    "Lets Android resolve the scheme without a package constraint."
-   );
+    "Lets Android choose a matching handler."
+   ]);
   }
  }
 
- if(/^https?:\/\//i.test(weburl)) {
-  add(
-   "Normal website URL",
-   weburl,
-   "generated",
-   "Standard clickable HTTP or HTTPS link."
+ if(/^https?:\/\//i.test(web)){
+  tests.push([
+   "Normal website",
+   web,
+   "Standard HTTPS/HTTP URL."
+  ]);
+
+  const w=websiteIntent(web);
+  if(w)tests.push([
+   "Website intent",
+   w,
+   "Tests Android's URL handler."
+  ]);
+
+  if(validPkg){
+   const targeted=websiteIntent(web,pkg);
+   if(targeted)tests.push([
+    "Targeted website intent",
+    targeted,
+    "Requests the chosen app for this URL."
+   ]);
+  }
+ }
+
+ if(custom &&
+    /^[a-z][a-z0-9+.-]*:/i.test(custom) &&
+    !/^(javascript|data):/i.test(custom)){
+  tests.push([
+   "Custom URL",
+   custom,
+   "Direct user-supplied URL."
+  ]);
+ }
+
+ if(!tests.length){
+  container.textContent=
+   "Enter a package, website, or custom URI.";
+ }
+
+ for(const [name,url,desc] of tests){
+  container.append(
+   makeTest(name,url,"Generated",desc)
   );
-
-  try {
-   const u=new URL(weburl);
-
-   add(
-    "Website as Android intent",
-    intent("//"+u.host+u.pathname+
-     u.search,[
-      "scheme="+u.protocol.slice(0,-1),
-      "action=android.intent.action.VIEW",
-      "category=android.intent.category.BROWSABLE"
-     ]),
-    "generated",
-    "Lets Android choose an app for the URL."
-   );
-
-   if(validPkg) {
-    add(
-     "Website targeted to package",
-     intent("//"+u.host+u.pathname+
-      u.search,[
-       "scheme="+u.protocol.slice(0,-1),
-       "action=android.intent.action.VIEW",
-       "package="+pkg
-      ]),
-     "generated",
-     "Targets the selected package with the website URL."
-    );
-   }
-  } catch {}
  }
-
- // Control tests
- add(
-  "YouTube HTTPS — known working",
-  "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "controls",
-  "Previously opened YouTube on this device."
- );
-
- add(
-  "YouTube custom URI",
-  "vnd.youtube:dQw4w9WgXcQ",
-  "controls"
- );
-
- add(
-  "YouTube corrected VIEW intent",
-  intent("//www.youtube.com/watch?v=dQw4w9WgXcQ",[
-   "scheme=https",
-   "action=android.intent.action.VIEW",
-   "category=android.intent.category.BROWSABLE",
-   "package="+packages.youtube
-  ]),
-  "controls",
-  "Tests Chrome's Android intent handling."
- );
-
- add(
-  "YouTube without package constraint",
-  intent("//www.youtube.com/watch?v=dQw4w9WgXcQ",[
-   "scheme=https",
-   "action=android.intent.action.VIEW"
-  ]),
-  "controls",
-  "Lets Android resolve the link."
- );
-
- add(
-  "Google Maps HTTPS",
-  "https://www.google.com/maps/search/?api=1&query=New+York",
-  "controls",
-  "Normal website link that may open Maps."
- );
-
- add(
-  "Google Maps geo URI",
-  "geo:0,0?q=New+York",
-  "controls",
-  "Tests Android's geographic URI handler."
- );
-
- // Home and settings
- add(
-  "Android Home settings",
-  intent("",[
-   "action=android.settings.HOME_SETTINGS"
-  ]),
-  "home",
-  "Requests default Home app settings."
- );
-
- add(
-  "Android Home activity",
-  intent("",[
-   "action=android.intent.action.MAIN",
-   "category=android.intent.category.HOME"
-  ]),
-  "home",
-  "May resolve to the configured Home app."
- );
-
- add(
-  "GoLauncher",
-  intent("",[
-   "action=android.intent.action.MAIN",
-   "category=android.intent.category.LAUNCHER",
-   "package="+packages.go
-  ]),
-  "home"
- );
-
- add(
-  "First Phone Launcher",
-  intent("",[
-   "action=android.intent.action.MAIN",
-   "category=android.intent.category.LAUNCHER",
-   "package="+packages.first
-  ]),
-  "home"
- );
-
- add(
-  "Android Settings",
-  intent("",[
-   "action=android.settings.SETTINGS"
-  ]),
-  "home"
- );
-
- add(
-  "Application Settings",
-  intent("",[
-   "action=android.settings.APPLICATION_SETTINGS"
-  ]),
-  "home"
- );
-
- add(
-  "DataWedge",
-  intent("",[
-   "action=android.intent.action.MAIN",
-   "category=android.intent.category.LAUNCHER",
-   "package="+packages.wedge
-  ]),
-  "home"
- );
-
- // Ordinary schemes
- const ordinary=[
-  ["Phone dialer","tel:5550100"],
-  ["SMS","sms:5550100"],
-  ["Email","mailto:test@example.com"],
-  ["Google Maps","geo:0,0?q=New+York"],
-  ["Web browser","https://example.com"],
-  ["HTTP browser","http://example.com"],
-  ["Calendar file",
-   "https://www.google.com/calendar"],
-  ["YouTube web","https://m.youtube.com"],
-  ["Chrome settings URL","chrome://settings/"],
-  ["Chrome apps URL","chrome://apps/"]
- ];
-
- for(const [name,url] of ordinary) {
-  add(name,url,"schemes",
-   "Tests the browser or installed URI handler.");
- }
-
- if(custom) {
-  const accepted=/^(https?:|intent:|[a-z][a-z0-9+.-]*:)/i
-   .test(custom);
-
-  if(accepted &&
-     !/^javascript:/i.test(custom) &&
-     !/^data:/i.test(custom)) {
-   add(
-    "Custom URL",
-    custom,
-    "customtest",
-    "User-supplied URI."
-   );
-  }
- }
-
- for(const group of [
-  "generated","controls","home",
-  "schemes","customtest"
- ]) {
-  const target=group==="controls"?"controls":
-   group==="home"?"home":
-   group==="schemes"?"schemes":
-   group==="customtest"?"customtest":
-   "generated";
-
-  renderGroup(group,target);
- }
-
- renderLog();
 }
 
-function resetFields() {
- $("preset").value=packages.first;
- $("pkg").value=packages.first;
+function renderCatalog(){
+ const root=$("catalog");
+ root.replaceChildren();
+
+ const q=$("search").value.toLowerCase().trim();
+ const category=$("category").value;
+
+ const matching=APPS.filter(a=>
+  (category==="All"||a[2]===category) &&
+  (a[0].toLowerCase().includes(q) ||
+   a[1].toLowerCase().includes(q))
+ );
+
+ $("catalogCount").textContent=
+  matching.length+" of "+APPS.length+" apps";
+
+ for(const app of matching){
+  root.append(makeAppCard(app));
+ }
+}
+
+function renderResults(){
+ const root=$("results");
+ root.replaceChildren();
+
+ const entries=Object.entries(resultMap);
+
+ if(!entries.length){
+  root.textContent="No results recorded.";
+  return;
+ }
+
+ for(const [id,result] of entries){
+  const p=document.createElement("p");
+  p.textContent=id.split("|")[0]+" — "+result;
+  root.append(p);
+ }
+}
+
+$("generateBtn").onclick=generate;
+
+$("resetBtn").onclick=()=>{
+ $("preset").value=APPS[0][1];
+ $("pkg").value=APPS[0][1];
  $("activity").value="";
  $("scheme").value="";
  $("path").value="";
  $("weburl").value="";
  $("customurl").value="";
  generate();
-}
-
-$("preset").onchange=()=>{
- const value=$("preset").value;
- $("pkg").value=value==="custom"?"":value;
- generate();
 };
 
-for(const id of [
- "pkg","activity","scheme","path",
- "weburl","customurl"
-]) {
- $(id).addEventListener("input",generate);
-}
+$("search").oninput=renderCatalog;
+$("category").onchange=renderCatalog;
 
+$("copyResults").onclick=async()=>{
+ const text=Object.entries(resultMap)
+  .map(([id,result])=>id+" => "+result)
+  .join("\n");
+
+ try{
+  await navigator.clipboard.writeText(text);
+  toast("Results copied");
+ }catch{
+  toast("Copy unavailable");
+ }
+};
+
+$("clearResults").onclick=()=>{
+ if(!confirm("Clear all recorded results?"))return;
+ resultMap={};
+ save();
+ generate();
+ renderStatic();
+ renderCatalog();
+ renderResults();
+};
+
+populate();
+renderStatic();
 generate();
+renderCatalog();
+renderResults();
 </script>
-
 </body>
 </html>
