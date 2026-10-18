@@ -22,4 +22,72 @@ $('fullscreen').onclick=async()=>{try{await document.documentElement.requestFull
 $('notify').onclick=()=>show('capResult','Notification API: '+(typeof Notification==='undefined'?'unavailable':Notification.permission)+'\n(No permission requested.)');
 const urls=['chrome://version','chrome://policy','chrome://gpu','chrome://settings','chrome://downloads','chrome://flags','chrome://net-export'];for(const u of urls){const b=document.createElement('button');b.className='secondary';b.textContent='Copy '+u;b.onclick=async()=>{try{await navigator.clipboard.writeText(u);show('copyResult','Copied: '+u)}catch{show('copyResult','Copy unavailable. Type: '+u)}};$('diag').append(b)}
 try{$('notes').value=localStorage.getItem('zebra-lab-notes')||''}catch{}$('notes').oninput=()=>{try{localStorage.setItem('zebra-lab-notes',$('notes').value)}catch{}};$('copyNotes').onclick=async()=>{try{await navigator.clipboard.writeText($('notes').value);alert('Copied')}catch{alert('Clipboard unavailable')}};$('clearNotes').onclick=()=>{$('notes').value='';try{localStorage.removeItem('zebra-lab-notes')}catch{}};
-</script></body></html>
+</script>
+<section class="card" id="fileInspector">
+<h2>8. Selected File Inspector</h2>
+<p>Choose files from Android DocumentsUI to display their contents here. Nothing is uploaded to a server. The picker grants access only to files you select.</p>
+<label for="inspectFiles">Select one or more files</label>
+<input id="inspectFiles" type="file" multiple style="width:100%;padding:12px;margin:8px 0" />
+<label for="inspectTextOnly"><input id="inspectTextOnly" type="checkbox" checked /> Limit text preview to 2 MB per file</label>
+<p id="inspectStatus" aria-live="polite">No files selected.</p>
+<div id="inspectOutput"></div>
+</section>
+<style>
+#fileInspector .file-result{border:1px solid #50617b;border-radius:10px;padding:12px;margin:12px 0;overflow-wrap:anywhere}
+#fileInspector pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:440px;overflow:auto;background:#07101c;color:#dceaff;padding:12px;border-radius:8px;font-size:12px}
+#fileInspector img,#fileInspector video{display:block;max-width:100%;max-height:360px;margin:12px auto}
+#fileInspector audio{max-width:100%}
+#fileInspector button{margin:6px 8px 6px 0}
+</style>
+<script>
+(()=>{
+'use strict';
+const input=document.getElementById('inspectFiles');
+const output=document.getElementById('inspectOutput');
+const status=document.getElementById('inspectStatus');
+const limit=document.getElementById('inspectTextOnly');
+const maxPreview=2*1024*1024;
+let activeUrls=[];
+function el(tag,content){const n=document.createElement(tag);if(content!==undefined)n.textContent=content;return n;}
+function button(text,action){const b=el('button',text);b.type='button';b.addEventListener('click',action);return b;}
+function textType(file){return /^(text\/|application\/(json|xml|javascript|x-javascript|x-sh|yaml|x-yaml|.*\+json|.*\+xml))/.test(file.type)||/\.(txt|log|json|jsonl|xml|csv|tsv|md|html?|css|js|mjs|yaml|yml|ini|cfg|conf|properties|sh|py|java|kt|sql|gradle)$/i.test(file.name);}
+function size(bytes){return bytes<1024?bytes+' B':bytes<1048576?(bytes/1024).toFixed(1)+' KB':(bytes/1048576).toFixed(2)+' MB';}
+function safeMedia(file,box,tag){const url=URL.createObjectURL(file);activeUrls.push(url);const node=document.createElement(tag);node.src=url;node.controls=tag!=='img';node.preload='metadata';box.append(node);}
+async function inspect(file){
+ const box=el('article');box.className='file-result';output.append(box);
+ box.append(el('h3',file.name),el('p',size(file.size)+' · '+(file.type||'Unknown MIME type')+' · Last modified: '+new Date(file.lastModified).toLocaleString()));
+ try{
+  if(file.type.startsWith('image/')){safeMedia(file,box,'img');return;}
+  if(file.type.startsWith('audio/')){safeMedia(file,box,'audio');return;}
+  if(file.type.startsWith('video/')){safeMedia(file,box,'video');return;}
+  if(file.type==='application/pdf'){
+   box.append(el('p','PDF selected. This inspector does not parse PDF text.'));
+   const url=URL.createObjectURL(file);activeUrls.push(url);
+   const a=el('a','Open selected PDF');a.href=url;a.target='_blank';a.rel='noopener';box.append(a);return;
+  }
+  if(!textType(file)){
+   box.append(el('p','Binary or unsupported file. Contents are not decoded as text.'));
+   const head=new Uint8Array(await file.slice(0,64).arrayBuffer());
+   box.append(el('pre','First '+head.length+' bytes (hex):\n'+Array.from(head,b=>b.toString(16).padStart(2,'0')).join(' ')));
+   return;
+  }
+  const count=limit.checked?Math.min(file.size,maxPreview):file.size;
+  if(count>8*1048576){box.append(el('p','File is too large to display at once. Enable the 2 MB preview limit.'));return;}
+  const content=await file.slice(0,count).text();
+  let shown=content;
+  if(/\.(json)$/i.test(file.name)&&count===file.size){try{shown=JSON.stringify(JSON.parse(content),null,2)}catch{}}
+  if(count<file.size)box.append(el('p','Showing the first '+size(count)+' of '+size(file.size)+'.'));
+  const pre=el('pre',shown);box.append(pre);
+  box.append(button('Copy displayed text',async()=>{try{await navigator.clipboard.writeText(shown);status.textContent='Copied text from '+file.name}catch{status.textContent='Clipboard unavailable; select the text manually.'}}));
+ }catch(err){box.append(el('p','Could not read this file: '+String(err.message||err)));}
+}
+input.addEventListener('change',async()=>{
+ activeUrls.forEach(url=>URL.revokeObjectURL(url));activeUrls=[];output.replaceChildren();
+ const files=Array.from(input.files||[]);
+ status.textContent=files.length?files.length+' selected file(s). Reading...':'No files selected.';
+ for(const file of files)await inspect(file);
+ status.textContent=files.length+' file(s) inspected locally.';
+});
+})();
+</script>
+</body></html>
