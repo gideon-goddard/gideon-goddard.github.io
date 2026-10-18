@@ -129,8 +129,8 @@ $('zExportNotes').onclick=()=>download(new Blob([$('zNotes').value],{type:'text/
 <p id="zeStatus" class="status">No file loaded.</p>
 <textarea id="zeText" rows="16" spellcheck="false" placeholder="JSON content appears here. You can also paste JSON directly."></textarea>
 <button id="zeValidate">Validate JSON</button><button id="zeFormat" class="secondary">Format JSON</button>
-<button id="zeSave">Save edited copy</button><button id="zeShare" class="secondary">Share edited copy (Bluetooth)</button>
-<p><small>On Android, Save normally downloads to Downloads. Share requires browser file-sharing support and a permitted target. No active device configuration is modified.</small></p>
+<button id="zeNativeSave">Native Save As JSON</button><button id="zeSave" class="secondary">Download JSON (fallback)</button><button id="zeShare" class="secondary">Share edited copy (Bluetooth)</button>
+<p><small>Native Save As uses the browser File System Access API when supported; Chrome on Android may not expose it. Download JSON uses Downloads as a fallback. Share requires browser file-sharing support and a permitted target. No active device configuration is modified.</small></p>
 </section>
 <script>
 (()=>{'use strict';
@@ -142,6 +142,7 @@ const parse=()=>JSON.parse(editor.value);
 const output=()=>{const obj=parse();return new File([JSON.stringify(obj,null,2)+'\n'],filename.replace(/\.json$/i,'')+'_edited.json',{type:'application/json'});};
 document.getElementById('zeValidate').onclick=()=>{try{parse();report('Valid JSON.')}catch(e){report('Invalid JSON: '+e.message)}};
 document.getElementById('zeFormat').onclick=()=>{try{editor.value=JSON.stringify(parse(),null,2);report('JSON formatted locally.')}catch(e){report('Invalid JSON: '+e.message)}};
+document.getElementById('zeNativeSave').onclick=async()=>{let f;try{f=output()}catch(e){report('Invalid JSON: '+e.message);return;}if(typeof window.showSaveFilePicker!=='function'){report('Native Save As is not exposed by this Chrome. Use Download JSON (fallback), or Share edited copy.');return;}try{const h=await window.showSaveFilePicker({suggestedName:f.name,types:[{description:'JSON document',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(await f.text());await w.close();report('Saved JSON through native file picker: '+f.name);}catch(e){report('Native Save As cancelled or unavailable: '+e.message+'. Try Download JSON (fallback).')}};
 document.getElementById('zeSave').onclick=()=>{try{const f=output(),u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);report('Requested download: '+f.name+'. Check Downloads.')}catch(e){report('Save failed: '+e.message)}};
 document.getElementById('zeShare').onclick=async()=>{let f;try{f=output()}catch(e){report('Invalid JSON: '+e.message);return}try{if(!navigator.share||!navigator.canShare?.({files:[f]})){report('This browser does not support sharing JSON file attachments. Use Save edited copy instead.');return}await navigator.share({files:[f],title:f.name});report('Share sheet returned. Confirm receipt on the other device.')}catch(e){report('Share cancelled or unavailable: '+e.message)}};
 })();
