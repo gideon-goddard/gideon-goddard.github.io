@@ -123,4 +123,27 @@ async function shareFile(file){if(!file)return say('zShareStatus','Select a file
 $('zShareBtn').onclick=()=>shareFile(current);$('zSaveBtn').onclick=()=>current?download(current,current.name):say('zShareStatus','Select a file first.');$('zCopyName').onclick=async()=>{if(!current)return;try{await navigator.clipboard.writeText(current.name);say('zShareStatus','Filename copied.')}catch(e){say('zShareStatus','Clipboard unavailable.')}};
 $('zExportNotes').onclick=()=>download(new Blob([$('zNotes').value],{type:'text/plain'}),'zebra-notes.txt');$('zShareNotes').onclick=()=>shareFile(new File([$('zNotes').value],'zebra-notes.txt',{type:'text/plain'}));render();
 })();
-</script></body></html>
+</script><section class="card" id="localJsonEditor"><h2>13. Local JSON Editor — Save / Share Copy</h2>
+<p>Select a JSON file, edit it locally, validate the syntax, then download or share a <strong>separate copy</strong>. This never writes over the source or uploads to a server.</p>
+<label for="zeFile">Open JSON file</label><input type="file" id="zeFile" accept=".json,application/json,text/plain">
+<p id="zeStatus" class="status">No file loaded.</p>
+<textarea id="zeText" rows="16" spellcheck="false" placeholder="JSON content appears here. You can also paste JSON directly."></textarea>
+<button id="zeValidate">Validate JSON</button><button id="zeFormat" class="secondary">Format JSON</button>
+<button id="zeSave">Save edited copy</button><button id="zeShare" class="secondary">Share edited copy (Bluetooth)</button>
+<p><small>On Android, Save normally downloads to Downloads. Share requires browser file-sharing support and a permitted target. No active device configuration is modified.</small></p>
+</section>
+<script>
+(()=>{'use strict';
+const file=document.getElementById('zeFile'), editor=document.getElementById('zeText'), status=document.getElementById('zeStatus');
+let filename='configuration.json';
+const report=t=>status.textContent=t;
+file.addEventListener('change',async()=>{const f=file.files?.[0];if(!f)return;filename=f.name;try{editor.value=await f.text();report('Loaded '+f.name+' ('+f.size+' bytes). Original remains unchanged.');}catch(e){report('Could not read file: '+e.message)}});
+const parse=()=>JSON.parse(editor.value);
+const output=()=>{const obj=parse();return new File([JSON.stringify(obj,null,2)+'\n'],filename.replace(/\.json$/i,'')+'_edited.json',{type:'application/json'});};
+document.getElementById('zeValidate').onclick=()=>{try{parse();report('Valid JSON.')}catch(e){report('Invalid JSON: '+e.message)}};
+document.getElementById('zeFormat').onclick=()=>{try{editor.value=JSON.stringify(parse(),null,2);report('JSON formatted locally.')}catch(e){report('Invalid JSON: '+e.message)}};
+document.getElementById('zeSave').onclick=()=>{try{const f=output(),u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);report('Requested download: '+f.name+'. Check Downloads.')}catch(e){report('Save failed: '+e.message)}};
+document.getElementById('zeShare').onclick=async()=>{let f;try{f=output()}catch(e){report('Invalid JSON: '+e.message);return}try{if(!navigator.share||!navigator.canShare?.({files:[f]})){report('This browser does not support sharing JSON file attachments. Use Save edited copy instead.');return}await navigator.share({files:[f],title:f.name});report('Share sheet returned. Confirm receipt on the other device.')}catch(e){report('Share cancelled or unavailable: '+e.message)}};
+})();
+</script>
+</body></html>
