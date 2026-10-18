@@ -146,4 +146,45 @@ document.getElementById('zeSave').onclick=()=>{try{const f=output(),u=URL.create
 document.getElementById('zeShare').onclick=async()=>{let f;try{f=output()}catch(e){report('Invalid JSON: '+e.message);return}try{if(!navigator.share||!navigator.canShare?.({files:[f]})){report('This browser does not support sharing JSON file attachments. Use Save edited copy instead.');return}await navigator.share({files:[f],title:f.name});report('Share sheet returned. Confirm receipt on the other device.')}catch(e){report('Share cancelled or unavailable: '+e.message)}};
 })();
 </script>
+<section class="card" id="capabilityLab"><h2>14. Native Android Capability Lab</h2>
+<p><strong>Start here:</strong> You do not need to open DocumentsUI separately. Tap <b>Open Android file picker</b> below; Android should show its system file-selection interface. The chooser shows files, not installed applications. Use the share tests to discover compatible apps.</p>
+<button id="clPick">Open Android file picker</button><input id="clInput" type="file" hidden><button id="clPickMulti" class="secondary">Choose multiple files</button><input id="clMulti" type="file" multiple hidden>
+<pre id="clPicked">No file selected.</pre>
+<h3>Harmless test files</h3><p>Generate sample files containing only demo text. Download one, open it in Android Files/Downloads, and try its three-dot menu or Open with option. Some managed devices hide those actions.</p>
+<button data-sample="txt">Save .txt</button><button data-sample="json">Save .json</button><button data-sample="html">Save .html</button><button data-sample="csv">Save .csv</button>
+<h3>Share-target discovery</h3><p>Try sharing a sample text or JSON file. Android may offer different compatible applications. This does not enumerate installed apps automatically.</p>
+<button id="clShareText">Share sample text file</button><button id="clShareJson">Share sample JSON file</button><button id="clSharePlain" class="secondary">Share plain text</button>
+<h3>Native Save As availability</h3><p>Chrome does not generally expose Android DocumentsUI's Save As dialog directly to webpages. Test whether this browser supports the optional File System Access save picker; otherwise use Downloads.</p>
+<button id="clSaveAs">Try native Save As</button><button id="clDownload" class="secondary">Download sample file</button>
+<h3>Results and observations</h3><pre id="clStatus">Ready. No files leave the device unless you explicitly choose a share target.</pre>
+<textarea id="clNotes" rows="5" placeholder="Which apps appear under Share or Open with? What happened when you tapped Save As?"></textarea>
+<button id="clCopyLog">Copy results</button><button id="clExportLog" class="secondary">Download results</button><button id="clClearLog" class="secondary">Clear results</button>
+<p><small>Only browser-permitted Android interfaces are tested. No enterprise settings, packages, or provisioning files are changed.</small></p></section>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);let entries=[];
+const stamp=()=>new Date().toLocaleString();
+function log(msg){entries.push('['+stamp()+'] '+msg);$('clStatus').textContent=entries.slice(-20).join('\n');}
+function sample(kind){let name,content,type;switch(kind){
+case 'json':name='zebra-demo.json';content=JSON.stringify({demo:true,note:'Sample file only; no device configuration'},null,2)+'\n';type='application/json';break;
+case 'html':name='zebra-demo.html';content='<!doctype html><title>Demo</title><p>Harmless test file</p>';type='text/html';break;
+case 'csv':name='zebra-demo.csv';content='kind,value\ndemo,1\n';type='text/csv';break;
+default:name='zebra-demo.txt';content='Zebra capability lab sample text. No device data.\n';type='text/plain';}
+return new File([content],name,{type});}
+function download(f){const url=URL.createObjectURL(f),a=document.createElement('a');a.href=url;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);log('Download requested: '+f.name+' — check Downloads.');}
+async function shareFile(f){try{if(!navigator.share){log('Web Share API unavailable.');return;}if(!navigator.canShare?.({files:[f]})){log('File attachments not supported by share sheet for '+f.name+'. Try plain text or download.');return;}await navigator.share({title:f.name,files:[f]});log('Share sheet completed for '+f.name+'; verify recipient received it.');}catch(e){log('Share cancelled or failed: '+e.message);}}
+$('clPick').onclick=()=>$('clInput').click();$('clPickMulti').onclick=()=>$('clMulti').click();
+for(const id of ['clInput','clMulti'])$(id).addEventListener('change',()=>{const fs=[...$(id).files];$('clPicked').textContent=fs.length?fs.map(f=>f.name+' — '+f.size+' bytes — '+(f.type||'unknown type')).join('\n'):'No file selected';log('Picker returned '+fs.length+' file(s).');});
+document.querySelectorAll('[data-sample]').forEach(b=>b.onclick=()=>download(sample(b.dataset.sample)));
+$('clShareText').onclick=()=>shareFile(sample('txt'));$('clShareJson').onclick=()=>shareFile(sample('json'));
+$('clSharePlain').onclick=async()=>{try{if(!navigator.share)throw Error('Web Share unavailable');await navigator.share({title:'Zebra sample',text:'Zebra capability lab harmless test text'});log('Plain-text share sheet completed.');}catch(e){log('Plain-text share: '+e.message)}};
+$('clSaveAs').onclick=async()=>{if(typeof window.showSaveFilePicker!=='function'){log('Native Save As picker API unavailable in this Chrome. Use Download and Android Files.');return;}try{const h=await window.showSaveFilePicker({suggestedName:'zebra-demo.txt',types:[{description:'Text file',accept:{'text/plain':['.txt']}}]});const w=await h.createWritable();await w.write(await sample('txt').text());await w.close();log('Saved sample using native Save As.');}catch(e){log('Native Save As unavailable/cancelled: '+e.message)}};
+$('clDownload').onclick=()=>download(sample('txt'));
+const fullLog=()=>entries.join('\n')+'\n\nObservations:\n'+$('clNotes').value;
+$('clCopyLog').onclick=async()=>{try{await navigator.clipboard.writeText(fullLog());log('Results copied.')}catch(e){log('Clipboard unavailable: '+e.message)}};
+$('clExportLog').onclick=()=>download(new File([fullLog()],'zebra-capability-results.txt',{type:'text/plain'}));
+$('clClearLog').onclick=()=>{entries=[];$('clNotes').value='';$('clStatus').textContent='Results cleared.'};
+log('Capability Lab loaded. Tap Open Android file picker to begin.');
+})();
+</script>
 </body></html>
