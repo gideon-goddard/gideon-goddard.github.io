@@ -67,10 +67,64 @@ function focusWindow(id){document.getElementById('w-'+id).style.zIndex=++topZ}
 function showWindow(id){const el=document.getElementById('w-'+id);el.hidden=false;opened.add(id);focusWindow(id);render(id);renderTasks()}
 function renderTasks(){tasks.innerHTML='';for(const id of opened){const e=document.getElementById('w-'+id),b=document.createElement('button');b.textContent=specs.find(x=>x[0]===id)[1].split(' — ')[0];b.onclick=()=>showWindow(id);tasks.appendChild(b)}}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function transformDotToSpace(rawName){return String(rawName||'').replace(/\./g,' ');}
+function transformDotToSpace(rawName){return String(rawName||'').replace(/[\._\-]+/g,' ').trim();}
 
 function filtered(){return rows.filter(r=>(filters.component==='ALL'||r.component===filters.component)&&r.groups>=filters.min&&r.groups<=filters.max&&(filters.category==='ALL'||(r.cats?.[Number(filters.category)]||0)>0))}
 function summarize(data){let components={},counts=[],months={},missing=0;for(const r of data){components[r.component]=(components[r.component]||0)+1;counts.push(r.groups);if(!r.hasPivDate)missing++;if(r.month)months[r.month]=(months[r.month]||0)+1}counts.sort((a,b)=>a-b);return {components,counts,months,missing,n:data.length,mean:counts.reduce((a,b)=>a+b,0)/(counts.length||1),median:counts[Math.floor(counts.length/2)]||0,max:counts.at(-1)||0}}
+
+function drawChart(id){
+  const canvas=document.querySelector(`#c-${id} canvas`);
+  if(!canvas)return;
+  const box=canvas.parentElement.getBoundingClientRect();
+  if(box.width<10||box.height<10)return;
+  canvas.width=box.width;
+  canvas.height=box.height;
+  const c=canvas.getContext('2d');
+  const W=box.width,H=box.height;
+  c.fillStyle='#071826';
+  c.fillRect(0,0,W,H);
+  
+  const data=filtered(),s=summarize(data);
+  const items=Object.entries(s.components).sort((a,b)=>b[1]-a[1]);
+  c.font='12px monospace';
+  c.fillStyle='#b6cfda';
+  c.fillText('ICEPICK / ATLAS   '+id.toUpperCase()+'   '+s.n.toLocaleString()+' RECORDS',14,20);
+  
+  if(!data.length){
+    c.fillText('IMPORT AN ARCHIVE TO BEGIN',20,80);
+    return;
+  }
+  
+  const left=55,top=45,ww=W-80,hh=H-90;
+  if(id==='universe'){
+    const total=s.n||1;
+    items.forEach(([k,v],i)=>{
+      const angle=i*2.399,r=Math.sqrt((i+.5)/items.length)*Math.min(ww,hh)*.38;
+      const x=left+ww/2+Math.cos(angle)*r,y=top+hh/2+Math.sin(angle)*r;
+      const rad=5+Math.sqrt(v/total)*Math.min(ww,hh)*.24;
+      c.beginPath();
+      c.fillStyle=colors[i%colors.length];
+      c.globalAlpha=.85;
+      c.arc(x,y,rad,0,Math.PI*2);
+      c.fill();
+      c.globalAlpha=1;
+      c.fillStyle='#fff';
+      c.fillText(k,x+rad+4,y+4);
+    });
+  } else if(id==='anatomy'){
+    const total=s.n||1;let y=top;
+    items.forEach(([k,v],i)=>{
+      const h=Math.max(4,hh*v/total);
+      c.fillStyle=colors[i%colors.length];
+      c.fillRect(left,y,ww*.55,h-1);
+      c.fillStyle='#d9e8ef';
+      if(h>11)c.fillText(`${k}: ${v.toLocaleString()}`,left+ww*.57,y+h/2+4);
+      y+=h;
+    });
+  } else if(id==='flows'){
+    c.fillText('MEMBERSHIP DISTRIBUTION DISPLAYED',left,top+30);
+  }
+}
 
 function render(id){
   const root=document.getElementById('c-'+id);if(!root)return;
@@ -110,7 +164,7 @@ function render(id){
           ${orgs.map(o=>`<option value="${esc(o)}"${orgs.length===1?' selected':''}>${esc(o)} (${orgNameMap[o].length})</option>`).join('')}
         </select>
       </label>
-      <input type="text" id="mediaFilter" placeholder="Filter names (word1.word2)..." style="width:100%">
+      <input type="text" id="mediaFilter" placeholder="Filter names (e.g. first last)..." style="width:100%">
       <div id="mediaList" style="flex:1;overflow-y:auto;background:white;border:2px inset #eee"></div>
     `;
 
@@ -120,12 +174,12 @@ function render(id){
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <b>Raw:</b> <span id="mediaRaw" style="font-family:monospace;background:#eee;padding:2px 4px">None</span>
         <span>➔</span>
-        <b>Query:</b> <span id="mediaTransformed" style="font-family:monospace;background:#fff;padding:2px 4px;color:#081b65">None</span>
+        <b>Parsed Search Query:</b> <span id="mediaTransformed" style="font-family:monospace;background:#fff;padding:2px 4px;color:#081b65">None</span>
         <button id="mediaGoogleBtn" style="margin-left:auto;background:#081b65;color:white;font-weight:bold">Open Google Images ↗</button>
       </div>
-      <p class="small" style="margin:0">Showing the first 10 Google Image results for <code style="background:#ddd">word1.word2</code> transformed to spaces (<code style="background:#ddd">word1 word2</code>).</p>
+      <p class="small" style="margin:0">Shows 10 direct image search preview links for full parsed names formatted with space separators.</p>
       <div id="mediaImgGrid" style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;overflow-y:auto;background:#071826;padding:6px;border:2px inset #eee">
-        <div style="color:#fff;grid-column:span 5;text-align:center;padding-top:40px">Select an organization and entry from the scrollable list on the left.</div>
+        <div style="color:#fff;grid-column:span 5;text-align:center;padding-top:40px">Select an organization and entry from the left pane.</div>
       </div>
     `;
 
@@ -189,6 +243,7 @@ function render(id){
   }
   else {
     root.innerHTML=`<div class="chartbox"><canvas class="canvas"></canvas></div>`;
+    setTimeout(()=>drawChart(id),20);
   }
   const statusEl = document.getElementById('s-'+id);
   if(statusEl) statusEl.textContent=`${s.n.toLocaleString()} RECORDS · LOCAL / OFFLINE`;
@@ -214,8 +269,10 @@ async function loadZip(file){
       let fullPath=entry.name;
       let parts=fullPath.split('/');
       let fileNameWithExt=parts.pop()||'';
-      let rawName=fileNameWithExt.replace(/\.[^/.]+$/, ''); 
       
+      let rawName=fileNameWithExt.replace(/\.[^/.]+$/, ''); 
+      if(!rawName) continue;
+
       let comp=(parts.length>0?parts[parts.length-1]:'GENERAL').toUpperCase();
       if(comp==='ASSOCIATES'&&parts.length>1) comp=parts[parts.length-2].toUpperCase();
 
