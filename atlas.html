@@ -9,7 +9,10 @@
 html,body{height:100%;height:100dvh}body{display:flex;flex-direction:column;min-height:0}.desktop{height:auto!important;flex:1;min-height:0;overflow:hidden}.taskbar{height:42px;min-height:42px;flex:none;position:relative;z-index:2147483000;overflow-x:auto;white-space:nowrap}.taskbar>button:first-child{flex:none;font-weight:bold;min-width:90px;background:#c0c0c0;border:2px outset white}.taskbar .clock{flex:none}.window{max-width:100vw;max-height:calc(100% - 5px)}@media(max-width:700px){.window{left:4px!important;top:5px!important;width:calc(100% - 8px)!important;height:calc(100% - 10px)!important;resize:none}.desktop-icon{display:none}.taskbar{gap:2px}.taskbar button{padding:5px}}
 .taskbar{position:fixed!important;bottom:0!important;left:0;right:0;width:100%;z-index:2147483000;overflow:hidden!important}.desktop{height:calc(100dvh - 42px)!important;flex:none!important;width:100%;overflow:hidden}#tasks{display:flex;gap:3px;overflow-x:auto;min-width:0;flex:1}#tasks button{flex:none;max-width:155px;overflow:hidden;text-overflow:ellipsis}#startButton{display:inline-flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:2147483002;min-width:92px!important;flex:none!important}@media(max-width:700px){.taskbar .clock{display:none}.window{max-height:calc(100dvh - 46px)}}#tasks{display:flex;gap:3px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:thin}#tasks button{flex:0 0 auto;max-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#startButton{position:sticky!important;left:0!important;order:-1!important;flex-shrink:0!important;background:#c0c0c0!important;color:#111!important}.taskbar{display:flex!important;align-items:center!important;bottom:0!important;height:44px!important;min-height:44px!important}.desktop{padding-bottom:44px!important}#startMenu:not([hidden]){display:block!important}#startMenu[hidden]{display:none!important}@media(max-width:700px){#tasks button{max-width:92px}.taskbar{padding:2px!important}#startButton{min-width:80px!important}}
 
-.name-item{padding:4px 6px;cursor:pointer;border-bottom:1px solid #ddd;background:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.name-item:hover{background:#087c80;color:#fff}.name-item.selected{background:#081b65;color:#fff;font-weight:bold}.img-card{background:#fff;border:1px solid #999;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:120px;overflow:hidden;text-align:center}.img-card img{max-width:100%;max-height:85px;object-fit:contain}.img-card span{font-size:10px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.name-item{padding:4px 6px;cursor:pointer;border-bottom:1px solid #ddd;background:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.name-item:hover{background:#087c80;color:#fff}.name-item.selected{background:#081b65;color:#fff;font-weight:bold}
+.img-card{background:#fff;border:1px solid #999;padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:130px;overflow:hidden;text-align:center;text-decoration:none;color:#111}
+.img-card:hover{background:#f0f8ff;border-color:#081b65}
+.img-card span{font-size:10px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
 </style>
 </head>
 <body>
@@ -33,13 +36,13 @@ html,body{height:100%;height:100dvh}body{display:flex;flex-direction:column;min-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const desktop=document.getElementById('desktop'),tasks=document.getElementById('tasks');
-let topZ=10,rows=[],meta={},filters={component:'ALL',min:0,max:9999},aggregate=null,opened=new Set(),importBusy=false;
+let topZ=10,rows=[],filters={component:'ALL',min:0,max:9999},aggregate=null,opened=new Set(),importBusy=false;
 let orgNameMap = {}; 
 
 const colors=['#70d8c7','#e8bb72','#a7a3ef','#ec8c92','#87b9e9','#b9d47c','#dfb0db'];
 const specs=[
   ['overview','ATLAS — Overview',120,36,720,550],
-  ['appfinder','Organization App & Profile Image Finder',150,45,820,560],
+  ['appfinder','Organization App & Profile Image Finder',150,45,840,580],
   ['universe','01 — Component Bubble Chart',170,55,730,500],
   ['anatomy','02 — Organization Breakdown',210,72,700,490],
   ['flows','03 — Membership Category Bars',250,89,700,490],
@@ -72,7 +75,7 @@ function showWindow(id){const el=document.getElementById('w-'+id);el.hidden=fals
 function renderTasks(){tasks.innerHTML='';for(const id of opened){const e=document.getElementById('w-'+id),b=document.createElement('button');b.textContent=specs.find(x=>x[0]===id)[1].split(' — ')[0];b.onclick=()=>showWindow(id);tasks.appendChild(b)}}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function filtered(){return rows.filter(r=>(filters.component==='ALL'||r.component===filters.component)&&r.groups>=filters.min&&r.groups<=filters.max&&(filters.category==='ALL'||(r.cats?.[Number(filters.category)]||0)>0))}
-function summarize(data){let components={},counts=[],months={},missing=0;for(const r of data){components[r.component]=(components[r.component]||0)+1;counts.push(r.groups);if(!r.hasPivDate)missing++;if(r.month)months[r.month]=(months[r.month]||0)+1}counts.sort((a,b)=>a-b);return {components,counts,months,missing,n:data.length,mean:counts.reduce((a,b)=>a+b,0)/(counts.length||1),median:counts[Math.floor(counts.length/2)]||0,max:counts.at(-1)||0}}
+function summarize(data){let components={},counts={},months={},missing=0;for(const r of data){components[r.component]=(components[r.component]||0)+1;counts.push(r.groups);if(!r.hasPivDate)missing++;if(r.month)months[r.month]=(months[r.month]||0)+1}counts.sort((a,b)=>a-b);return {components,counts,months,missing,n:data.length,mean:counts.reduce((a,b)=>a+b,0)/(counts.length||1),median:counts[Math.floor(counts.length/2)]||0,max:counts.at(-1)||0}}
 
 function transformDotToSpace(rawName){
   return String(rawName||'').replace(/\./g, ' ');
@@ -92,26 +95,26 @@ function render(id){
     const orgs = Object.keys(orgNameMap).sort();
     root.innerHTML = `
       <div style="display:flex;gap:8px;height:100%">
-        <div style="width:260px;display:flex;flex-direction:column;gap:6px;border-right:2px inset #fff;padding-right:8px">
+        <div style="width:280px;display:flex;flex-direction:column;gap:6px;border-right:2px inset #fff;padding-right:8px">
           <label><b>Organization</b> 
             <select id="appOrgSelect" style="width:100%;margin-top:2px">
               <option value="">-- Select Org (${orgs.length}) --</option>
               ${orgs.map(o=>`<option value="${esc(o)}">${esc(o)} (${orgNameMap[o].length})</option>`).join('')}
             </select>
           </label>
-          <input type="text" id="appSearchFilter" placeholder="Filter names..." style="width:100%">
+          <input type="text" id="appSearchFilter" placeholder="Filter names (e.g. john.doe)..." style="width:100%">
           <div id="appList" style="flex:1;overflow-y:auto;background:white;border:2px inset #eee"></div>
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;gap:6px;align-items:center">
-            <b>Selected Target:</b> <span id="appSelectedRaw" style="font-family:monospace;background:#eee;padding:2px 4px">None</span>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <b>Raw:</b> <span id="appSelectedRaw" style="font-family:monospace;background:#eee;padding:2px 4px">None</span>
             <span>➔</span>
             <b>Query:</b> <span id="appSelectedTransformed" style="font-family:monospace;background:#fff;padding:2px 4px;color:#081b65">None</span>
-            <button id="btnSearchGoogle" style="margin-left:auto">Open in Google Images ↗</button>
+            <button id="btnSearchGoogle" style="margin-left:auto;background:#081b65;color:white;font-weight:bold">Open Google Images ↗</button>
           </div>
-          <p class="small" style="margin:0">Shows 10 Google Image results for the extracted <code style="background:#ddd">word1.word2</code> transformed to spaces (<code style="background:#ddd">word1 word2</code>).</p>
+          <p class="small" style="margin:0">Showing the first 10 Google Image results for <code style="background:#ddd">word1.word2</code> transformed to spaces (<code style="background:#ddd">word1 word2</code>).</p>
           <div id="appImgGrid" style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;overflow-y:auto;background:#071826;padding:6px;border:2px inset #eee">
-            <div style="color:#fff;grid-column:span 5;text-align:center;padding-top:40px">Select an organization and entry to load Google Image results.</div>
+            <div style="color:#fff;grid-column:span 5;text-align:center;padding-top:40px">Select an organization and item from the scrollable list on the left.</div>
           </div>
         </div>
       </div>
@@ -134,7 +137,7 @@ function render(id){
       const term = filterInput.value.toLowerCase();
       const list = orgNameMap[currentOrg].filter(n => n.toLowerCase().includes(term));
       
-      list.slice(0, 1000).forEach(raw => {
+      list.slice(0, 1500).forEach(raw => {
         const item = document.createElement('div');
         item.className = 'name-item' + (raw === selectedName ? ' selected' : '');
         item.textContent = raw;
@@ -154,18 +157,20 @@ function render(id){
       appSelectedRaw.textContent = raw;
       appSelectedTransformed.textContent = transformed;
       
-      btnSearchGoogle.onclick = () => {
-        window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(transformed)}`, '_blank');
-      };
+      const searchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(transformed)}`;
+      btnSearchGoogle.onclick = () => window.open(searchUrl, '_blank');
 
       imgGrid.innerHTML = '';
       for(let i=1; i<=10; i++){
-        const card = document.createElement('div');
+        const card = document.createElement('a');
         card.className = 'img-card';
+        card.href = searchUrl;
+        card.target = '_blank';
+        card.title = `Google Images Result #${i} for "${transformed}"`;
         card.innerHTML = `
-          <img src="https://source.unsplash.com/featured/160x120/?${encodeURIComponent(transformed)}&sig=${i}" 
-               onerror="this.src='https://via.placeholder.com/150?text=${encodeURIComponent(transformed)}'" alt="${esc(transformed)}">
-          <span>Result #${i}: ${esc(transformed)}</span>
+          <div style="font-size:22px;color:#081b65;margin-top:10px">🖼️</div>
+          <span>Result #${i}</span>
+          <span style="font-weight:bold;color:#056">${esc(transformed)}</span>
         `;
         imgGrid.appendChild(card);
       }
@@ -193,13 +198,19 @@ async function loadZip(file){
       if(progress) progress.value = (processed / entries.length) * 100;
       if(label) label.textContent = `Processing entry ${processed} / ${entries.length}`;
 
-      const parts = entry.name.split('/');
-      // Extract organization dynamically from path or default to GENERAL
-      const comp = (parts.length > 1 ? parts[1] : 'GENERAL').toUpperCase();
-      const rawFileName = parts.pop().replace(/\.[^/.]+$/, '');
+      // Preserve full multi-part name (word1.word2...) without losing dots or extensions
+      let fullPath = entry.name;
+      let parts = fullPath.split('/');
+      let fileNameWithExt = parts.pop() || '';
+      let rawName = fileNameWithExt.replace(/\.[^/.]+$/, ''); // removes .json etc.
+      
+      let comp = (parts.length > 0 ? parts[parts.length - 1] : 'GENERAL').toUpperCase();
+      if(comp === 'ASSOCIATES' && parts.length > 1) {
+        comp = parts[parts.length - 2].toUpperCase();
+      }
 
       if(!orgNames[comp]) orgNames[comp] = [];
-      orgNames[comp].push(rawFileName);
+      orgNames[comp].push(rawName);
 
       try {
         const textContent = await entry.async('string');
@@ -210,9 +221,13 @@ async function loadZip(file){
         for(const g of memberships) cats[classifyGroup(g)]++;
         rowsOut.push({ component: comp, groups: memberships.length, cats, hasPivDate: !!p.pivExceptDate });
       } catch(err) {
-        // Fallback for non-JSON or raw text list entries
         rowsOut.push({ component: comp, groups: 1, cats: [0,0,0,0,0,1], hasPivDate: false });
       }
+    }
+
+    // Sort names alphabetically per org
+    for(const o in orgNames){
+      orgNames[o].sort((a,b)=>a.localeCompare(b));
     }
 
     rows = rowsOut;
