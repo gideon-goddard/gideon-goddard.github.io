@@ -38,6 +38,7 @@ html,body{height:100%;height:100dvh}body{display:flex;flex-direction:column;min-
 const desktop=document.getElementById('desktop'),tasks=document.getElementById('tasks');
 let topZ=10,rows=[],filters={component:'ALL',min:0,max:9999},aggregate=null,opened=new Set(),importBusy=false;
 let orgNameMap = {}; 
+let archiveLoadedStatus = "NO ARCHIVE LOADED";
 
 const colors=['#70d8c7','#e8bb72','#a7a3ef','#ec8c92','#87b9e9','#b9d47c','#dfb0db'];
 const specs=[
@@ -86,7 +87,7 @@ function render(id){
   const s=summarize(filtered());
   
   if(id==='overview'){
-    root.innerHTML=`<div class="panel"><b>FILE / IMPORT ARCHIVE</b><p><input type="file" id="zipfile" accept=".zip,application/zip"></p><progress id="progress" value="0" max="100"></progress> <button id="cancelImport">Cancel import</button><p id="progressText" class="small">Choose a local ZIP file. Nothing is transmitted.</p></div><div class="stats"><div class="stat"><strong>${s.n.toLocaleString()}</strong>Records</div><div class="stat"><strong>${s.mean.toFixed(1)}</strong>Mean memberships</div><div class="stat"><strong>${Object.keys(s.components).length}</strong>Components</div></div><p class="notice">Privacy mode: aggregate-only analysis.</p><div class="panel"><b>WORKSPACES</b><p>${specs.map(x=>`<button data-open="${x[0]}">${x[1]}</button>`).join(' ')}</p></div>`;
+    root.innerHTML=`<div class="panel"><b>FILE / IMPORT ARCHIVE</b><p><input type="file" id="zipfile" accept=".zip,application/zip"></p><progress id="progress" value="${rows.length>0?100:0}" max="100"></progress> <button id="cancelImport">Cancel import</button><p id="progressText" class="small">${rows.length>0 ? 'Archive loaded: ' + rows.length.toLocaleString() + ' records ready.' : 'Choose a local ZIP file. Nothing is transmitted.'}</p></div><div class="stats"><div class="stat"><strong>${s.n.toLocaleString()}</strong>Records</div><div class="stat"><strong>${s.mean.toFixed(1)}</strong>Mean memberships</div><div class="stat"><strong>${Object.keys(s.components).length}</strong>Components</div></div><p class="notice">Privacy mode: aggregate-only analysis.</p><div class="panel"><b>WORKSPACES</b><p>${specs.map(x=>`<button data-open="${x[0]}">${x[1]}</button>`).join(' ')}</p></div>`;
     root.querySelector('#zipfile').onchange=e=>loadZip(e.target.files[0]);
     root.querySelector('#cancelImport').onclick=cancelImport;
     root.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>showWindow(b.dataset.open));
@@ -99,7 +100,7 @@ function render(id){
           <label><b>Organization</b> 
             <select id="appOrgSelect" style="width:100%;margin-top:2px">
               <option value="">-- Select Org (${orgs.length}) --</option>
-              ${orgs.map(o=>`<option value="${esc(o)}">${esc(o)} (${orgNameMap[o].length})</option>`).join('')}
+              ${orgs.map(o=>`<option value="${esc(o)}"${orgs.length===1?' selected':''}>${esc(o)} (${orgNameMap[o].length})</option>`).join('')}
             </select>
           </label>
           <input type="text" id="appSearchFilter" placeholder="Filter names (e.g. john.doe)..." style="width:100%">
@@ -128,7 +129,8 @@ function render(id){
     const btnSearchGoogle = root.querySelector('#btnSearchGoogle');
     const imgGrid = root.querySelector('#appImgGrid');
 
-    let currentOrg = '';
+    let currentOrg = orgs.length === 1 ? orgs[0] : '';
+    if(orgs.length === 1) orgSelect.value = currentOrg;
     let selectedName = '';
 
     const updateList = () => {
@@ -178,7 +180,11 @@ function render(id){
 
     orgSelect.onchange = (e) => { currentOrg = e.target.value; updateList(); };
     filterInput.oninput = updateList;
+    if(currentOrg) updateList();
   }
+
+  const statusEl = document.getElementById('s-'+id);
+  if(statusEl) statusEl.textContent = `${s.n.toLocaleString()} RECORDS · ${filters.component} · ${archiveLoadedStatus}`;
 }
 
 async function loadZip(file){
@@ -198,11 +204,10 @@ async function loadZip(file){
       if(progress) progress.value = (processed / entries.length) * 100;
       if(label) label.textContent = `Processing entry ${processed} / ${entries.length}`;
 
-      // Preserve full multi-part name (word1.word2...) without losing dots or extensions
       let fullPath = entry.name;
       let parts = fullPath.split('/');
       let fileNameWithExt = parts.pop() || '';
-      let rawName = fileNameWithExt.replace(/\.[^/.]+$/, ''); // removes .json etc.
+      let rawName = fileNameWithExt.replace(/\.[^/.]+$/, ''); 
       
       let comp = (parts.length > 0 ? parts[parts.length - 1] : 'GENERAL').toUpperCase();
       if(comp === 'ASSOCIATES' && parts.length > 1) {
@@ -225,7 +230,6 @@ async function loadZip(file){
       }
     }
 
-    // Sort names alphabetically per org
     for(const o in orgNames){
       orgNames[o].sort((a,b)=>a.localeCompare(b));
     }
@@ -233,6 +237,7 @@ async function loadZip(file){
     rows = rowsOut;
     orgNameMap = orgNames;
     aggregate = summarize(rows);
+    archiveLoadedStatus = `ARCHIVE LOADED (${file.name})`;
     if(progress) progress.value = 100;
     label.textContent = `Successfully loaded ${rows.length.toLocaleString()} entries across ${Object.keys(orgNameMap).length} organizations!`;
     
