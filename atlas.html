@@ -156,10 +156,10 @@ function render(id){
     if(currentOrg) updateMediaList();
   }
   else {
-    // Standard chart renderer fallback
     root.innerHTML=`<div class="chartbox"><canvas class="canvas"></canvas></div>`;
   }
-  document.getElementById('s-'+id).textContent=`${s.n.toLocaleString()} RECORDS · ${filters.component} · LOCAL / OFFLINE`;
+  const statusEl = document.getElementById('s-'+id);
+  if(statusEl) statusEl.textContent=`${s.n.toLocaleString()} RECORDS · ${filters.component} · LOCAL / OFFLINE`;
 }
 
 async function loadZip(file){
@@ -179,7 +179,8 @@ async function loadZip(file){
       if(progress) progress.value = (processed / entries.length) * 100;
       if(label) label.textContent = `Processing entry ${processed} / ${entries.length}`;
 
-      let parts = entry.name.split('/');
+      let fullPath = entry.name;
+      let parts = fullPath.split('/');
       let fileNameWithExt = parts.pop() || '';
       let rawName = fileNameWithExt.replace(/\.[^/.]+$/, ''); 
       
