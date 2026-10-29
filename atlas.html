@@ -41,7 +41,7 @@ const specs=[
   ['flows','03 — Membership Category Bars',250,89,700,490],
   ['sankey','04 — Organization → Category Sankey',275,98,810,560],
   ['members','Organization Member Breakdown (Aggregate)',290,105,760,540],
-  ['media','Organization Name & Google Image Viewer',280,110,840,580],
+  ['media','Organization Name & Top 10 Google Image Viewer',280,110,840,580],
   ['integrity','Data Integrity',400,165,630,450]
 ];
 
@@ -164,7 +164,7 @@ function render(id){
           ${orgs.map(o=>`<option value="${esc(o)}"${orgs.length===1?' selected':''}>${esc(o)} (${orgNameMap[o].length})</option>`).join('')}
         </select>
       </label>
-      <input type="text" id="mediaFilter" placeholder="Filter names (e.g. first last)..." style="width:100%">
+      <input type="text" id="mediaFilter" placeholder="Filter names..." style="width:100%">
       <div id="mediaList" style="flex:1;overflow-y:auto;background:white;border:2px inset #eee"></div>
     `;
 
@@ -172,14 +172,14 @@ function render(id){
     rightPane.style.cssText="flex:1;display:flex;flex-direction:column;gap:6px";
     rightPane.innerHTML=`
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <b>Raw:</b> <span id="mediaRaw" style="font-family:monospace;background:#eee;padding:2px 4px">None</span>
+        <b>Selected Name:</b> <span id="mediaRaw" style="font-family:monospace;background:#eee;padding:2px 4px">None</span>
         <span>➔</span>
-        <b>Parsed Search Query:</b> <span id="mediaTransformed" style="font-family:monospace;background:#fff;padding:2px 4px;color:#081b65">None</span>
+        <b>Search Query:</b> <span id="mediaTransformed" style="font-family:monospace;background:#fff;padding:2px 4px;color:#081b65">None</span>
         <button id="mediaGoogleBtn" style="margin-left:auto;background:#081b65;color:white;font-weight:bold">Open Google Images ↗</button>
       </div>
-      <p class="small" style="margin:0">Shows 10 direct image search preview links for full parsed names formatted with space separators.</p>
+      <p class="small" style="margin:0">Showing top 10 Google image result previews for the selected name.</p>
       <div id="mediaImgGrid" style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;overflow-y:auto;background:#071826;padding:6px;border:2px inset #eee">
-        <div style="color:#fff;grid-column:span 5;text-align:center;padding-top:40px">Select an organization and entry from the left pane.</div>
+        <div style="color:#fff;grid-column:span 5;text-align:center;padding-top:40px">Select an organization and name from the left list.</div>
       </div>
     `;
 
