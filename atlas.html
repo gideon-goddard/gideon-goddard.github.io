@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ICEPICK / ATLAS</title>
 <style>
-:root{font-family:Tahoma,Verdana,sans-serif;font-size:12px;color:#171717}*{box-sizing:border-box}body{margin:0;background:#087c80;overflow:hidden}.desktop{height:calc(100vh - 34px);position:relative;background:radial-gradient(ellipse at 50% 30%,#188f90,#086568)}.taskbar{height:34px;background:#c0c0c0;border-top:2px solid #fff;display:flex;gap:5px;align-items:center;padding:3px;box-shadow:0 -1px #555}.taskbar button,button,select{font:inherit;background:#c0c0c0;border:2px outset #eee;padding:4px 8px;cursor:pointer;color:#111}.taskbar button:active,button:active{border-style:inset}.taskbar .clock{margin-left:auto;border:1px inset #fff;padding:5px}.window{position:absolute;background:#c0c0c0;border:2px outset #eee;box-shadow:2px 3px 0 #2227;min-width:300px;min-height:180px;display:flex;flex-direction:column;resize:both;overflow:hidden}.titlebar{background:linear-gradient(90deg,#081b65,#3478a9);color:white;font-weight:bold;padding:3px 4px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none}.titlebar button{padding:0;width:20px;height:19px;line-height:12px;font-weight:bold}.content{flex:1;overflow:auto;padding:8px}.panel{background:#e5e5e5;border:2px inset #fff;padding:8px;margin-bottom:8px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.stat{background:white;border:1px inset #999;padding:10px}.stat strong{display:block;color:#102b72;font-size:22px}.small{color:#555;font-size:11px}input[type=file]{max-width:100%}progress{width:100%}.desktop-icon{position:absolute;left:15px;color:white;text-align:center;width:88px;cursor:pointer;padding:7px}.desktop-icon span{display:block;font-size:32px;text-shadow:1px 2px #123}.desktop-icon:hover{background:#ffffff20}.notice{border-left:4px solid #9a7220;background:#fff6d8;padding:8px}.wincontrols{display:flex;gap:2px}
-html,body{height:100%;height:100dvh}body{display:flex;flex-direction:column;min-height:0}.desktop{height:calc(100dvh - 42px)!important;flex:none!important;width:100%;overflow:hidden}.taskbar{position:fixed!important;bottom:0!important;left:0;right:0;width:100%;z-index:2147483000;height:42px!important;display:flex!important;align-items:center!important;padding:3px}#tasks{display:flex;gap:3px;overflow-x:auto;min-width:0;flex:1}#tasks button{flex:none;max-width:155px;overflow:hidden;text-overflow:ellipsis}#startButton{min-width:92px!important;background:#c0c0c0!important}
+:root{font-family:Tahoma,Verdana,sans-serif;font-size:12px;color:#171717}*{box-sizing:border-box}body{margin:0;background:#087c80;overflow:hidden}.desktop{height:calc(100vh - 34px);position:relative;background:radial-gradient(ellipse at 50% 30%,#188f90,#086568)}.taskbar{height:34px;background:#c0c0c0;border-top:2px solid #fff;display:flex;gap:5px;align-items:center;padding:3px;box-shadow:0 -1px #555}.taskbar button,button,select{font:inherit;background:#c0c0c0;border:2px outset #eee;padding:4px 8px;cursor:pointer;color:#111}.taskbar button:active,button:active{border-style:inset}.taskbar .clock{margin-left:auto;border:1px inset #fff;padding:5px}.window{position:absolute;background:#c0c0c0;border:2px outset #eee;box-shadow:2px 3px 0 #2227;min-width:300px;min-height:180px;display:flex;flex-direction:column;resize:both;overflow:hidden}.titlebar{background:linear-gradient(90deg,#081b65,#3478a9);color:white;font-weight:bold;padding:3px 4px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none}.titlebar button{padding:0;width:20px;height:19px;line-height:12px;font-weight:bold}.content{flex:1;overflow:auto;padding:8px}.menu{padding:5px;border-bottom:1px solid #888;display:flex;gap:6px;flex-wrap:wrap}.status{padding:4px;border-top:1px solid #888;background:#d1d1d1;font-size:11px}.canvas{background:#071826;border:2px inset #eee;width:100%;height:100%;min-height:220px;display:block}.panel{background:#e5e5e5;border:2px inset #fff;padding:8px;margin-bottom:8px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.stat{background:white;border:1px inset #999;padding:10px}.stat strong{display:block;color:#102b72;font-size:22px}.chartbox{height:calc(100% - 15px);min-height:230px}.small{color:#555;font-size:11px}input[type=file]{max-width:100%}progress{width:100%}table{border-collapse:collapse;width:100%;background:white}td,th{border:1px solid #999;padding:5px;text-align:left}th{background:#ddd}.desktop-icon{position:absolute;left:15px;color:white;text-align:center;width:88px;cursor:pointer;padding:7px}.desktop-icon span{display:block;font-size:32px;text-shadow:1px 2px #123}.desktop-icon:hover{background:#ffffff20}.notice{border-left:4px solid #9a7220;background:#fff6d8;padding:8px}.wincontrols{display:flex;gap:2px}.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}.badge{background:#e0e0e0;border:1px solid #888;padding:2px 5px}.window[hidden]{display:none}.window.max{left:0!important;top:0!important;width:100%!important;height:100%!important;resize:none}.help{line-height:1.6}canvas{touch-action:none}
+html,body{height:100%;height:100dvh}body{display:flex;flex-direction:column;min-height:0}.desktop{height:auto!important;flex:1;min-height:0;overflow:hidden}.taskbar{height:42px;min-height:42px;flex:none;position:relative;z-index:2147483000;overflow-x:auto;white-space:nowrap}.taskbar>button:first-child{flex:none;font-weight:bold;min-width:90px;background:#c0c0c0;border:2px outset white}.taskbar .clock{flex:none}.window{max-width:100vw;max-height:calc(100% - 5px)}@media(max-width:700px){.window{left:4px!important;top:5px!important;width:calc(100% - 8px)!important;height:calc(100% - 10px)!important;resize:none}.desktop-icon{display:none}.taskbar{gap:2px}.taskbar button{padding:5px}}
+.taskbar{position:fixed!important;bottom:0!important;left:0;right:0;width:100%;z-index:2147483000;overflow:hidden!important}
+.desktop{height:calc(100dvh - 42px)!important;flex:none!important;width:100%;overflow:hidden}
+#tasks{display:flex;gap:3px;overflow-x:auto;min-width:0;flex:1}#tasks button{flex:none;max-width:155px;overflow:hidden;text-overflow:ellipsis}
+#startButton{display:inline-flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:2147483002;min-width:92px!important;flex:none!important}
 .name-item{padding:5px 8px;cursor:pointer;border-bottom:1px solid #ddd;background:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .name-item:hover{background:#087c80;color:#fff}
 .name-item.selected{background:#081b65;color:#fff;font-weight:bold}
@@ -17,17 +21,28 @@ html,body{height:100%;height:100dvh}body{display:flex;flex-direction:column;min-
 <body>
 <div class="desktop" id="desktop">
   <div class="desktop-icon" style="top:14px" onclick="showWindow('overview')"><span>▦</span>Overview</div>
-  <div class="desktop-icon" style="top:108px" onclick="showWindow('media')"><span>🖼️</span>Image Viewer</div>
+  <div class="desktop-icon" style="top:108px" onclick="showWindow('universe')"><span>◎</span>Universe</div>
+  <div class="desktop-icon" style="top:202px" onclick="showWindow('anatomy')"><span>▤</span>Organizations</div>
+  <div class="desktop-icon" style="top:296px" onclick="showWindow('media')"><span>🖼️</span>Image Finder</div>
 </div>
 <div class="taskbar"><button id="startButton" onclick="toggleStartMenu()">▣ Start</button><span id="tasks" aria-label="Open windows"></span><span class="clock" id="clock">LOCAL / OFFLINE</span></div>
-<div id="startMenu" hidden style="position:fixed;bottom:42px;left:2px;z-index:2147483001;background:#c0c0c0;border:2px outset white;padding:8px;min-width:210px;display:none"><strong>ICEPICK / ATLAS</strong><hr><div id="startMenuItems"></div></div>
+<div id="startMenu" hidden style="position:fixed;bottom:42px;left:2px;z-index:2147483001;background:#c0c0c0;border:2px outset white;padding:8px;min-width:210px;box-shadow:3px 3px #333;display:none"><strong>ICEPICK / ATLAS</strong><hr><div id="startMenuItems"></div></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const desktop=document.getElementById('desktop'),tasks=document.getElementById('tasks');
-let topZ=10,rows=[],opened=new Set(),orgNameMap={};
+let topZ=10,rows=[],meta={},filters={component:'ALL',min:0,max:9999},aggregate=null,opened=new Set(),importBusy=false;
+let orgNameMap = {};
+const colors=['#70d8c7','#e8bb72','#a7a3ef','#ec8c92','#87b9e9','#b9d47c','#dfb0db'];
 const specs=[
   ['overview','ATLAS — Overview',120,36,720,550],
-  ['media','Organization Name & Google Image Viewer',150,50,840,580]
+  ['universe','01 — Component Bubble Chart',170,55,730,500],
+  ['anatomy','02 — Organization Breakdown',210,72,700,490],
+  ['flows','03 — Membership Category Bars',250,89,700,490],
+  ['sankey','04 — Organization → Category Sankey',275,98,810,560],
+  ['members','Organization Member Breakdown (Aggregate)',290,105,760,540],
+  ['media','Organization Name & Google Image Viewer',280,110,840,580],
+  ['integrity','Data Integrity',400,165,630,450]
 ];
 
 for(const [id,title,x,y,w,h] of specs){
@@ -46,19 +61,38 @@ for(const [id,title,x,y,w,h] of specs){
   new ResizeObserver(()=>{if(!el.hidden)render(id)}).observe(el);
 }
 
+const CAT_LABELS=['Productivity / collaboration','Endpoint / device management','Network / connectivity','Identity / directory','Business applications','Other / unclassified'];
+function classifyGroup(g){const v=String(g).toLowerCase();if(/office365|o365|exchange|outlook|teams|sharepoint|email/.test(v))return 0;if(/workstation|desktop|device|mobile|printer|endpoint|intune/.test(v))return 1;if(/network|vpn|wifi|wireless|zscaler|proxy/.test(v))return 2;if(/identity|directory|piv|credential|authentication|ldap/.test(v))return 3;if(/application|app-|software|license|entitlement/.test(v))return 4;return 5}
 function focusWindow(id){document.getElementById('w-'+id).style.zIndex=++topZ}
 function showWindow(id){const el=document.getElementById('w-'+id);el.hidden=false;opened.add(id);focusWindow(id);render(id);renderTasks()}
 function renderTasks(){tasks.innerHTML='';for(const id of opened){const e=document.getElementById('w-'+id),b=document.createElement('button');b.textContent=specs.find(x=>x[0]===id)[1].split(' — ')[0];b.onclick=()=>showWindow(id);tasks.appendChild(b)}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function transformDotToSpace(rawName){return String(rawName||'').replace(/\./g,' ');}
+
+function filtered(){return rows.filter(r=>(filters.component==='ALL'||r.component===filters.component)&&r.groups>=filters.min&&r.groups<=filters.max&&(filters.category==='ALL'||(r.cats?.[Number(filters.category)]||0)>0))}
+function summarize(data){let components={},counts=[],months={},missing=0;for(const r of data){components[r.component]=(components[r.component]||0)+1;counts.push(r.groups);if(!r.hasPivDate)missing++;if(r.month)months[r.month]=(months[r.month]||0)+1}counts.sort((a,b)=>a-b);return {components,counts,months,missing,n:data.length,mean:counts.reduce((a,b)=>a+b,0)/(counts.length||1),median:counts[Math.floor(counts.length/2)]||0,max:counts.at(-1)||0}}
 
 function render(id){
   const root=document.getElementById('c-'+id);if(!root)return;
+  const s=summarize(filtered());
+  
   if(id==='overview'){
     root.innerHTML='';
     const panel=document.createElement('div');panel.className='panel';
-    panel.innerHTML=`<b>FILE / IMPORT ARCHIVE</b><p><input type="file" id="zipfile" accept=".zip,application/zip"></p><progress id="progress" value="${rows.length>0?100:0}" max="100"></progress><p id="progressText" class="small">${rows.length>0?'Archive loaded: '+rows.length.toLocaleString()+' records ready.':'Choose a local ZIP file. Nothing is transmitted.'}</p>`;
+    panel.innerHTML=`<b>FILE / IMPORT ARCHIVE</b><p><input type="file" id="zipfile" accept=".zip,application/zip"></p><progress id="progress" value="${rows.length>0?100:0}" max="100"></progress><p id="progressText" class="small">${rows.length>0 ? 'Archive loaded: ' + rows.length.toLocaleString() + ' records ready.' : 'Choose a local ZIP file. Nothing is transmitted.'}</p>`;
+    
+    const stats=document.createElement('div');stats.className='stats';
+    stats.innerHTML=`<div class="stat"><strong>${s.n.toLocaleString()}</strong>Records</div><div class="stat"><strong>${s.mean.toFixed(1)}</strong>Mean memberships</div><div class="stat"><strong>${Object.keys(s.components).length}</strong>Components</div>`;
+    
+    const workspaces=document.createElement('div');workspaces.className='panel';
+    workspaces.innerHTML=`<b>WORKSPACES</b><p>${specs.map(x=>`<button data-open="${x[0]}">${x[1]}</button>`).join(' ')}</p>`;
+    
     root.appendChild(panel);
+    root.appendChild(stats);
+    root.appendChild(workspaces);
+
     root.querySelector('#zipfile').onchange=e=>loadZip(e.target.files[0]);
+    root.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>showWindow(b.dataset.open));
   }
   else if(id==='media'){
     root.innerHTML='';
@@ -73,10 +107,10 @@ function render(id){
       <label><b>Organization</b>
         <select id="mediaOrgSelect" style="width:100%;margin-top:2px">
           <option value="">-- Select Org (${orgs.length}) --</option>
-          ${orgs.map(o=>`<option value="${o}"${orgs.length===1?' selected':''}>${o} (${orgNameMap[o].length})</option>`).join('')}
+          ${orgs.map(o=>`<option value="${esc(o)}"${orgs.length===1?' selected':''}>${esc(o)} (${orgNameMap[o].length})</option>`).join('')}
         </select>
       </label>
-      <input type="text" id="mediaFilter" placeholder="Filter names..." style="width:100%">
+      <input type="text" id="mediaFilter" placeholder="Filter names (word1.word2)..." style="width:100%">
       <div id="mediaList" style="flex:1;overflow-y:auto;background:white;border:2px inset #eee"></div>
     `;
 
@@ -138,7 +172,7 @@ function render(id){
             card.className='img-card';
             card.href=searchUrl;
             card.target='_blank';
-            card.innerHTML=`<div style="font-size:22px;color:#081b65;margin-top:10px">🖼️</div><span>Result #${i}</span><span style="font-weight:bold;color:#056">${transformed}</span>`;
+            card.innerHTML=`<div style="font-size:22px;color:#081b65;margin-top:10px">🖼️</div><span>Result #${i}</span><span style="font-weight:bold;color:#056">${esc(transformed)}</span>`;
             imgGrid.appendChild(card);
           }
         };
@@ -150,14 +184,21 @@ function render(id){
     filterInput.oninput=updateMediaList;
     if(currentOrg)updateMediaList();
   }
-  document.getElementById('s-'+id).textContent=`${rows.length.toLocaleString()} RECORDS · LOCAL / OFFLINE`;
+  else if(id==='integrity'){
+    root.innerHTML=`<h3>Archive integrity and schema report</h3><table>${Object.entries(meta).map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>`;
+  }
+  else {
+    root.innerHTML=`<div class="chartbox"><canvas class="canvas"></canvas></div>`;
+  }
+  const statusEl = document.getElementById('s-'+id);
+  if(statusEl) statusEl.textContent=`${s.n.toLocaleString()} RECORDS · LOCAL / OFFLINE`;
 }
 
 async function loadZip(file){
   if(!file||importBusy)return;importBusy=true;
   const progress=document.getElementById('progress'),label=document.getElementById('progressText');
   try{
-    label.textContent='Unpacking archive...';
+    if(label) label.textContent='Unpacking archive...';
     const zip=await JSZip.loadAsync(file);
     const entries=Object.values(zip.files).filter(e=>!e.dir);
     
@@ -173,14 +214,25 @@ async function loadZip(file){
       let fullPath=entry.name;
       let parts=fullPath.split('/');
       let fileNameWithExt=parts.pop()||'';
-      let rawName=fileNameWithExt.replace(/\.[^/.]+$/, '');
+      let rawName=fileNameWithExt.replace(/\.[^/.]+$/, ''); 
       
       let comp=(parts.length>0?parts[parts.length-1]:'GENERAL').toUpperCase();
       if(comp==='ASSOCIATES'&&parts.length>1) comp=parts[parts.length-2].toUpperCase();
 
       if(!orgNames[comp]) orgNames[comp]=[];
       orgNames[comp].push(rawName);
-      rowsOut.push({component:comp});
+
+      try {
+        const textContent = await entry.async('string');
+        const obj = JSON.parse(textContent);
+        const p = obj.profile_properties || obj.profileProperties || obj;
+        const memberships = Array.isArray(p.actualMemberOf) ? p.actualMemberOf : (Array.isArray(p.memberOf) ? p.memberOf : []);
+        const cats = [0,0,0,0,0,0];
+        for(const g of memberships) cats[classifyGroup(g)]++;
+        rowsOut.push({ component: comp, groups: memberships.length, cats, hasPivDate: !!p.pivExceptDate });
+      } catch(err) {
+        rowsOut.push({ component: comp, groups: 1, cats: [0,0,0,0,0,1], hasPivDate: false });
+      }
     }
 
     for(const o in orgNames){
@@ -189,9 +241,12 @@ async function loadZip(file){
 
     rows=rowsOut;
     orgNameMap=orgNames;
+    aggregate=summarize(rows);
+    meta={'Archive filename':file.name,'Records':rows.length,'Organizations':Object.keys(orgNameMap).length};
     if(progress)progress.value=100;
-    label.textContent=`Successfully loaded ${rows.length.toLocaleString()} entries across ${Object.keys(orgNameMap).length} organizations!`;
+    if(label)label.textContent=`Successfully loaded ${rows.length.toLocaleString()} entries across ${Object.keys(orgNameMap).length} organizations!`;
     
+    renderAll();
     showWindow('media');
   }catch(e){
     if(label)label.textContent='Import failed: '+e.message;
